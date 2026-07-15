@@ -3,14 +3,10 @@ interface TopbarProps {
   status: string;
 }
 
-export default function Topbar({ logo, status }: TopbarProps) {
+export default function Topbar({ logo }: TopbarProps) {
   return (
     <div id="topbar">
       <div className="logo-text" id="dyn-logo">{logo}</div>
-      <div className="status-badge">
-        <div className="status-dot" />
-        <span id="dyn-status">{status}</span>
-      </div>
     </div>
   );
 }

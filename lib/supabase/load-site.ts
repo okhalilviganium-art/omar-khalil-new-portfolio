@@ -20,7 +20,7 @@ const HOME_KEYS = [
 const ABOUT_KEYS = [
   "about_image", "about_image_media_id", "about_experience", "about_label",
   "about_title", "about_description", "about_skills", "about_tools",
-  "about_stat_years", "about_stat_projects", "about_stat_clients", "about_stat_awards",
+  "about_stat_years", "about_stat_projects", "about_stat_clients",
 ];
 
 const STATS_KEYS = ["stats_label", "stats_title"];
@@ -190,7 +190,6 @@ export async function loadSiteData(): Promise<SiteData> {
         { value: settings.about_stat_years || "", label: "Years Experience" },
         { value: settings.about_stat_projects || "", label: "Projects Done" },
         { value: settings.about_stat_clients || "", label: "Happy Clients" },
-        { value: settings.about_stat_awards || "", label: "Awards Won" },
       ],
     },
     projects: projects

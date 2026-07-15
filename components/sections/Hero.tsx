@@ -168,10 +168,6 @@ export default function Hero({ data, goTo }: HeroProps) {
           </div>
         )}
 
-        <div className="scroll-indicator">
-          <div className="scroll-line" />
-          scroll
-        </div>
       </div>
     </section>
   );

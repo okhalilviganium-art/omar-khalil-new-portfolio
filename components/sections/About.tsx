@@ -5,7 +5,7 @@ interface AboutProps {
 }
 
 export default function About({ data }: AboutProps) {
-  const hasStats = data.stats && data.stats.some(s => s.value);
+  const visibleStats = data.stats.filter((s) => s.value);
   const hasTools = data.tools && data.tools.length > 0;
 
   return (
@@ -53,9 +53,9 @@ export default function About({ data }: AboutProps) {
             )}
           </div>
         </div>
-        {hasStats && (
-          <div className="stats-grid" id="dyn-about-stats" style={{ marginTop: "2rem", maxWidth: 600, marginLeft: "auto", marginRight: "auto" }}>
-            {data.stats.map((s, i) => (
+        {visibleStats.length > 0 && (
+          <div className="stats-grid about-stats" id="dyn-about-stats">
+            {visibleStats.map((s, i) => (
               <div className="stat-card" key={i}>
                 <div className="stat-num">{s.value}</div>
                 <div className="stat-label">{s.label}</div>
