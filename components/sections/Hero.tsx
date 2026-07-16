@@ -24,19 +24,13 @@ export default function Hero({ data, goTo }: HeroProps) {
     >
       <div className="section-content home-content">
         {data.status && (
-          <div className="home-status" style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            marginBottom: "1rem",
-          }}>
+          <div className="home-status">
             <span style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
+              width: "var(--space-1-5)",
+              height: "var(--space-1-5)",
+              borderRadius: "var(--radius-full)",
               background: "var(--success, #2dffb3)",
-              boxShadow: "0 0 10px rgba(45,255,179,.5)",
+              boxShadow: "0 0 12px rgba(45,255,179,.6), inset 0 0 8px rgba(255,255,255,.2)",
               animation: "pulse 2s infinite",
             }} />
             <span style={{
@@ -64,16 +58,7 @@ export default function Hero({ data, goTo }: HeroProps) {
         />
 
         {data.subtitle && (
-          <p style={{
-            fontSize: "clamp(.8rem, 1.2vw, .95rem)",
-            color: "var(--text-muted)",
-            fontWeight: 300,
-            letterSpacing: ".04em",
-            marginTop: ".5rem",
-            maxWidth: 500,
-            marginLeft: "auto",
-            marginRight: "auto",
-          }}>
+          <p className="home-subtitle" id="dyn-home-subtitle">
             {data.subtitle}
           </p>
         )}
@@ -114,33 +99,24 @@ export default function Hero({ data, goTo }: HeroProps) {
         </div>
 
         {data.portrait && (
-          <div className="hero-portrait" style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: "2rem",
-          }}>
+          <div className="hero-portrait">
             <img
               src={data.portrait}
               alt={data.name}
               style={{
                 width: 180,
                 height: 180,
-                borderRadius: "50%",
+                borderRadius: "var(--radius-full)",
                 objectFit: "cover",
                 border: "2px solid var(--border)",
-                boxShadow: "0 0 40px rgba(108,99,255,.2)",
+                boxShadow: "0 8px 24px rgba(108,99,255,.25), 0 0 0 1px var(--accent)",
               }}
             />
           </div>
         )}
 
         {hasSocials && (
-          <div className="hero-socials" style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "1.5rem",
-            marginTop: "1.5rem",
-          }}>
+          <div className="hero-socials">
             {socials.linkedin && (
               <a href={socials.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: "var(--text-muted)", fontSize: "1.2rem", transition: "color .2s" }}>
                 <i className="bi bi-linkedin" />

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { Project } from "@/types";
+import ImageWithFallback from "@/components/ui/ImageWithFallback";
 
 interface Props {
   projects: Project[];
@@ -138,15 +139,11 @@ export default function WorkClient({ projects }: Props) {
                   aria-label={`${p.title} — ${catLabel}`}
                 >
                   <div className="work-card-img-wrap">
-                    <img
+                    <ImageWithFallback
                       src={thumb}
                       alt={p.title}
                       loading="lazy"
                       className="work-card-img"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                          "/images/placeholder.jpg";
-                      }}
                     />
                     <div className="work-card-overlay">
                       <span className="work-card-preview">

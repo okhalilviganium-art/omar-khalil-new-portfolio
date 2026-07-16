@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Project } from "@/types";
+import ImageWithFallback from "@/components/ui/ImageWithFallback";
 
 interface PortfolioProps {
   projects: Project[];
@@ -30,14 +31,11 @@ export default function Portfolio({ projects }: PortfolioProps) {
                   className="project-card"
                   aria-label={`${p.title} — ${categoryLabel}`}
                 >
-                  <img
+                  <ImageWithFallback
                     src={thumbSrc}
                     alt={p.title}
                     loading="lazy"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src =
-                        "/images/placeholder.jpg";
-                    }}
+                    className="project-card-img"
                   />
                   <div className="project-overlay">
                     {categoryLabel && (

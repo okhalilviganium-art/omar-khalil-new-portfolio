@@ -17,10 +17,10 @@ export default function About({ data }: AboutProps) {
             </div>
             <div className="about-img-deco" />
             <div className="about-badge">
-              <div style={{ fontSize: ".9rem", fontWeight: 700 }} id="dyn-about-exp">
+              <div className="about-badge-experience" id="dyn-about-exp">
                 {data.experience}
               </div>
-              <div style={{ color: "rgba(255,255,255,.7)" }}>Experience</div>
+              <div className="about-badge-label">Experience</div>
             </div>
           </div>
           <div>
@@ -44,9 +44,9 @@ export default function About({ data }: AboutProps) {
               ))}
             </div>
             {hasTools && (
-              <div className="skill-pills" id="dyn-about-tools" style={{ marginTop: ".75rem" }}>
+              <div className="skill-pills about-tools" id="dyn-about-tools">
                 {data.tools.map((tool) => (
-                  <span className="skill-pill" key={tool} style={{ borderColor: "var(--accent2)", opacity: 0.8 }}>{tool}</span>
+                  <span className="skill-pill tool-pill" key={tool}>{tool}</span>
                 ))}
               </div>
             )}
