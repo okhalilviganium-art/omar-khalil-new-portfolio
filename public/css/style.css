@@ -224,13 +224,12 @@
 
    html, body {
     height: 100%; width: 100%;
-    overflow: hidden;
+    overflow: auto;
     background: var(--bg-deep);
     color: var(--text);
     font-family: 'Outfit', sans-serif;
     cursor: auto;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
     scroll-behavior: smooth;
   }
 
@@ -309,8 +308,27 @@
     display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none;
     transition: opacity var(--transition-fast);
+    overflow: hidden;
+    overscroll-behavior: none;
   }
-  .section.active { opacity: 1; pointer-events: all; }
+  .section.active {
+    opacity: 1; pointer-events: all;
+    overflow-y: auto;
+    overscroll-behavior: none;
+  }
+
+  /* --- Navigation --- */
+  #main-nav {
+    position: fixed;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 98;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    align-items: center;
+  }
 
   /* --- Nav dots --- */
   .nav-dot {
@@ -1075,6 +1093,8 @@
     opacity: 0;
     transform: translateY(30px);
     transition: opacity var(--transition-slow) var(--transition-ease), transform var(--transition-slow) var(--transition-ease);
+    margin: auto 0;
+    width: 100%;
   }
   .section.active .section-content {
     opacity: 1;
@@ -2117,14 +2137,16 @@
     .about-badge { left: -1rem; bottom: 1rem; }
 
     .projects-grid { grid-template-columns: 1fr 1fr; }
+    .project-card { aspect-ratio: auto; }
     .stats-grid, .about-stats { grid-template-columns: 1fr 1fr; }
     .services-grid { grid-template-columns: 1fr 1fr; }
+    .service-card { height: auto; min-height: 0; }
 
     .section-label { font-size: .6rem; margin-bottom: .6rem; }
     .section-title { font-size: clamp(1.8rem, 5vw, 2.8rem); margin-bottom: 1.5rem; }
     .about-desc { font-size: .85rem; }
     .skill-pill { font-size: .6rem; padding: .25rem .7rem; }
-    .stat-card { padding: 1.4rem .8rem; }
+    .stat-card { padding: 1.4rem .8rem; height: auto; min-height: 0; }
     .stat-num { font-size: 2.8rem; }
 
     .cf-row { grid-template-columns: 1fr; }
@@ -2170,8 +2192,10 @@
     .about-badge { font-size: .6rem; padding: .4rem .7rem; }
 
     .projects-grid, .services-grid { grid-template-columns: 1fr; }
+    .project-card { aspect-ratio: auto; }
+    .service-card { height: auto; min-height: 0; }
     .stats-grid, .about-stats { grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .stat-card { padding: 1.2rem .6rem; }
+    .stat-card { padding: 1.2rem .6rem; height: auto; min-height: 0; }
     .stat-num { font-size: 2.4rem; }
     .stat-label { font-size: .55rem; }
 
@@ -2325,14 +2349,14 @@
     .skill-pill { font-size: .5rem; padding: .18rem .45rem; }
 
     .projects-grid, .services-grid { gap: .75rem; }
-    .project-card { border-radius: 6px; }
-    .service-card { padding: 1rem .75rem; border-radius: 6px; }
+    .project-card { border-radius: 6px; aspect-ratio: auto; }
+    .service-card { padding: 1rem .75rem; border-radius: 6px; height: auto; min-height: 0; }
     .service-icon { width: 40px; height: 40px; font-size: 1.1rem; margin-bottom: .8rem; }
     .service-name { font-size: .85rem; }
     .service-desc { font-size: .75rem; }
 
     .stats-grid, .about-stats { gap: .75rem; }
-    .stat-card { padding: .7rem .4rem; border-radius: 6px; }
+    .stat-card { padding: .7rem .4rem; border-radius: 6px; height: auto; min-height: 0; }
     .stat-num { font-size: 1.6rem; }
 
     .skills-bars { margin-top: 1.2rem; }

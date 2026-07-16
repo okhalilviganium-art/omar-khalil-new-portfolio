@@ -1,10 +1,12 @@
 import { createAdminClient } from "./admin";
+import { getMediaByIds } from "./media";
 import type {
   DbProject,
   DbCategory,
   DbTechTag,
   DbProjectGalleryItem,
   DbProjectLink,
+  DbMediaFile,
 } from "@/types/supabase";
 import type {
   Project,
@@ -137,13 +139,6 @@ export async function getProjectsFull(): Promise<Project[]> {
     }
   }
 
-  if (galRows.data) {
-    for (const g of galRows.data as DbProjectGalleryItem[]) {
-      if (!galMap.has(g.project_id)) galMap.set(g.project_id, []);
-      galMap.get(g.project_id)!.push(mapGalleryItem(g));
-    }
-  }
-
   if (linkRows.data) {
     for (const l of linkRows.data as DbProjectLink[]) {
       if (!linkMap.has(l.project_id)) linkMap.set(l.project_id, []);
@@ -151,15 +146,65 @@ export async function getProjectsFull(): Promise<Project[]> {
     }
   }
 
-  return rows.map((row) =>
-    dbToProject(
+  const thumbnailMediaIds = rows
+    .map((r) => r.thumbnail_media_id || r.cover_media_id || "")
+    .filter((id): id is string => Boolean(id));
+
+  const galleryMediaIds: string[] = [];
+  if (galRows.data) {
+    for (const g of galRows.data as DbProjectGalleryItem[]) {
+      if (g.media_id && !g.url) {
+        galleryMediaIds.push(g.media_id);
+      }
+    }
+  }
+
+  const allMediaIds = [...new Set([...thumbnailMediaIds, ...galleryMediaIds])];
+
+  let mediaMap = new Map<string, DbMediaFile>();
+  if (allMediaIds.length > 0) {
+    try {
+      mediaMap = await getMediaByIds(allMediaIds);
+    } catch {
+      // media lookup failed — fall back to img field
+    }
+  }
+
+  if (galRows.data) {
+    for (const g of galRows.data as DbProjectGalleryItem[]) {
+      if (!galMap.has(g.project_id)) galMap.set(g.project_id, []);
+      const item = mapGalleryItem(g);
+      if (!item.url && g.media_id) {
+        const media = mediaMap.get(g.media_id);
+        if (media?.public_url) {
+          item.url = media.public_url;
+        }
+      }
+      galMap.get(g.project_id)!.push(item);
+    }
+  }
+
+  return rows.map((row) => {
+    const project = dbToProject(
       row as DbProject,
       catMap.get(row.id) || [],
       tagMap.get(row.id) || [],
       galMap.get(row.id) || [],
       linkMap.get(row.id) || []
-    )
-  );
+    );
+
+    if (!project.img) {
+      const mediaId = (row as DbProject).thumbnail_media_id || (row as DbProject).cover_media_id || "";
+      if (mediaId) {
+        const media = mediaMap.get(mediaId);
+        if (media?.public_url) {
+          project.img = media.public_url;
+        }
+      }
+    }
+
+    return project;
+  });
 }
 
 export async function getFeaturedProjects(limit = 6): Promise<Project[]> {

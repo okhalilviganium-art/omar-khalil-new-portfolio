@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 
 interface UseSectionNavigationReturn {
@@ -8,9 +9,22 @@ interface UseSectionNavigationReturn {
   total: number;
 }
 
+function isSectionScrollable(el: HTMLElement): boolean {
+  return el.scrollHeight > el.clientHeight + 1;
+}
+
+function isAtTop(el: HTMLElement): boolean {
+  return el.scrollTop <= 1;
+}
+
+function isAtBottom(el: HTMLElement): boolean {
+  return el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+}
+
 export function useSectionNavigation(total: number = 6): UseSectionNavigationReturn {
   const currentRef = useRef(0);
   const animatingRef = useRef(false);
+  const pathname = usePathname();
 
   const goTo = useCallback((idx: number) => {
     if (animatingRef.current || idx === currentRef.current || idx < 0 || idx >= total) return;
@@ -24,6 +38,7 @@ export function useSectionNavigation(total: number = 6): UseSectionNavigationRet
       y: dir * -50, opacity: 0, duration: 0.4, ease: "power2.in",
       onComplete() {
         cur.classList.remove("active");
+        cur.scrollTop = 0;
         const sc = cur.querySelector(".section-content") as HTMLElement;
         if (sc) { sc.style.opacity = "0"; sc.style.transform = "translateY(30px)"; }
       },
@@ -61,12 +76,19 @@ export function useSectionNavigation(total: number = 6): UseSectionNavigationRet
     currentRef.current = idx;
   }, [total]);
 
-  // Wheel, touch, keyboard listeners
   useEffect(() => {
+    if (pathname !== "/") return;
+
     let lastWheel = 0;
     let touchStartY = 0;
 
     const onWheel = (e: WheelEvent) => {
+      const activeSection = document.getElementById("sec-" + currentRef.current);
+      if (activeSection && isSectionScrollable(activeSection)) {
+        if (e.deltaY > 0 && !isAtBottom(activeSection)) return;
+        if (e.deltaY < 0 && !isAtTop(activeSection)) return;
+      }
+
       const now = Date.now();
       if (now - lastWheel < 600) return;
       lastWheel = now;
@@ -80,6 +102,13 @@ export function useSectionNavigation(total: number = 6): UseSectionNavigationRet
 
     const onTouchEnd = (e: TouchEvent) => {
       const diff = touchStartY - e.changedTouches[0].clientY;
+
+      const activeSection = document.getElementById("sec-" + currentRef.current);
+      if (activeSection && isSectionScrollable(activeSection)) {
+        if (diff > 0 && !isAtBottom(activeSection)) return;
+        if (diff < 0 && !isAtTop(activeSection)) return;
+      }
+
       if (Math.abs(diff) > 40) {
         if (diff > 0) goTo(currentRef.current + 1);
         else goTo(currentRef.current - 1);
@@ -102,7 +131,7 @@ export function useSectionNavigation(total: number = 6): UseSectionNavigationRet
       window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [goTo]);
+  }, [goTo, pathname]);
 
   return { current: currentRef.current, goTo, total };
 }
