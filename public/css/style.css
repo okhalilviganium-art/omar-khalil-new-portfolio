@@ -881,7 +881,7 @@
   .services-wrap {
     max-width: var(--section-max);
     width: 100%;
-    padding: var(--space-4);
+    padding: 5rem var(--space-4) var(--space-4);
   }
   .services-grid {
     display: grid;
@@ -1116,11 +1116,11 @@
 
   /*  Glitch text  */
   @keyframes glitch1 {
-    0%,100%{clip-path:inset(0 0 100% 0)}
-    10%{clip-path:inset(10% 0 80% 0)}
-    20%{clip-path:inset(40% 0 40% 0)}
-    30%{clip-path:inset(70% 0 10% 0)}
-    40%{clip-path:inset(0 0 100% 0)}
+    0%,100%{clip-path:inset(0 0 100% 0);opacity:0}
+    10%{clip-path:inset(10% 0 80% 0);opacity:.5}
+    20%{clip-path:inset(40% 0 40% 0);opacity:.5}
+    30%{clip-path:inset(70% 0 10% 0);opacity:.5}
+    40%{clip-path:inset(0 0 100% 0);opacity:0}
   }
   .glitch-wrap { position: relative; display: inline-block; }
   .glitch-wrap::before, .glitch-wrap::after {
@@ -1130,16 +1130,17 @@
     font-size: inherit; letter-spacing: inherit;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     pointer-events: none;
+    opacity: 0;
   }
   .glitch-wrap::before {
     background: linear-gradient(135deg,var(--accent3),var(--accent3));
     -webkit-background-clip: text;
-    left: 2px; animation: glitch1 6s infinite; opacity: .5;
+    left: 2px; animation: glitch1 6s infinite;
   }
   .glitch-wrap::after {
     background: linear-gradient(135deg,var(--accent2),var(--accent2));
     -webkit-background-clip: text;
-    left: -2px; animation: glitch1 6s infinite .3s; opacity: .4;
+    left: -2px; animation: glitch1 6s infinite .3s;
   }
 
   /*  PROJECT POPUP MODAL  */
@@ -2276,7 +2277,7 @@
     .about-desc { font-size: .8rem; line-height: 1.7; }
 
     .section-content { padding: .5rem; }
-    .work-wrap, .stats-wrap, .services-wrap, .contact-wrap { padding: 1rem .75rem; }
+    .work-wrap, .stats-wrap, .services-wrap, .contact-wrap { padding: 3.5rem .75rem 1rem; }
 
     .modal-box { border-radius: 10px; }
     .modal-hero-img { height: 140px; }
