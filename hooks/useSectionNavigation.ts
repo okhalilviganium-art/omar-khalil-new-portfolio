@@ -68,7 +68,7 @@ export function useSectionNavigation(total: number = 6): UseSectionNavigationRet
 
     const onWheel = (e: WheelEvent) => {
       const now = Date.now();
-      if (now - lastWheel < 800) return;
+      if (now - lastWheel < 600) return;
       lastWheel = now;
       if (e.deltaY > 0) goTo(currentRef.current + 1);
       else goTo(currentRef.current - 1);
