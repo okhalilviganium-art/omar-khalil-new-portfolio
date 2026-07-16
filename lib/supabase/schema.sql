@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS services (
   icon        TEXT NOT NULL DEFAULT '',
   name        TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
+  category    TEXT NOT NULL DEFAULT '',
+  active      BOOLEAN NOT NULL DEFAULT true,
   sort_order  INT NOT NULL DEFAULT 0,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );

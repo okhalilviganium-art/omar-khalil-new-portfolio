@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getProjectById } from "@/lib/actions/projects";
+import { getProjectById, getAllProjectCategories, getAllProjectTechTags } from "@/lib/actions/portfolio";
 import ProjectEditor from "@/components/dashboard/portfolio/ProjectEditor";
 
 export const dynamic = "force-dynamic";
@@ -18,36 +18,42 @@ export default async function ProjectEditorPage({
   const project = await getProjectById(id);
   if (!project) redirect("/dashboard/portfolio");
 
+  const [allCategories, allTechTags] = await Promise.all([
+    getAllProjectCategories(),
+    getAllProjectTechTags(),
+  ]);
+
   const serialized = {
     id: project.id,
     title: project.title,
-    img: project.img,
-    tags: project.tags,
-    description: project.description,
-    role: project.role,
-    year: project.year,
-    stack: project.stack,
-    live: project.live,
-    overlay_tag: project.overlay_tag,
-    overlay_name: project.overlay_name,
-    gallery_images: project.gallery_images,
-    featured: project.featured,
-    github_url: project.github_url,
     slug: project.slug || "",
-    category: project.category || "",
+    shortDescription: project.shortDescription || "",
+    fullDescription: project.fullDescription || "",
     client: project.client || "",
+    year: project.year || "",
+    role: project.role || "",
+    img: project.img || "",
+    tags: project.tags || "",
+    stack: project.stack || "",
+    live: project.live || "",
+    category: project.category || "",
+    categories: project.categories || [],
+    techStack: project.techStack || [],
+    gallery: project.gallery || [],
+    links: project.links || [],
+    featured: project.featured || false,
     published: project.published !== false,
-    gallery_media_ids: typeof project.gallery_media_ids === "string"
-      ? project.gallery_media_ids
-      : JSON.stringify(project.gallery_media_ids || []),
-    cover_media_id: project.cover_media_id || "",
-    video_media_id: project.video_media_id || "",
-    seo_title: project.seo_title || "",
-    seo_description: project.seo_description || "",
-    technologies: project.technologies || "",
-    services_text: project.services_text || "",
-    publish_status: project.publish_status || "draft",
+    publishStatus: project.publishStatus || "published",
+    orderIndex: project.orderIndex || 0,
+    thumbnailMediaId: project.thumbnailMediaId || "",
+    coverImageMediaId: project.coverImageMediaId || "",
   };
 
-  return <ProjectEditor project={serialized} />;
+  return (
+    <ProjectEditor
+      project={serialized}
+      allCategories={allCategories}
+      allTechTags={allTechTags}
+    />
+  );
 }

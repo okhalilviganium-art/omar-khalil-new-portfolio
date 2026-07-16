@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import {
@@ -9,7 +9,7 @@ import {
   duplicateProject,
   reorderProjects,
   updateProjectField,
-} from "@/lib/actions/projects";
+} from "@/lib/actions/portfolio";
 import type { DbProject } from "@/types/supabase";
 
 interface Props {
@@ -36,18 +36,19 @@ export default function PortfolioList({ projects: initial }: Props) {
 
   const categories = Array.from(new Set(projects.map((p) => p.category).filter(Boolean)));
 
+  const isPublished = (p: DbProject) => p.status !== "draft";
+
   const filtered = projects.filter((p) => {
     if (search) {
       const q = search.toLowerCase();
       if (
         !p.title.toLowerCase().includes(q) &&
         !p.category.toLowerCase().includes(q) &&
-        !p.tags.toLowerCase().includes(q) &&
-        !p.client.toLowerCase().includes(q)
+        !p.tags.toLowerCase().includes(q)
       ) return false;
     }
-    if (filter === "published" && !p.published) return false;
-    if (filter === "draft" && p.published) return false;
+    if (filter === "published" && !isPublished(p)) return false;
+    if (filter === "draft" && isPublished(p)) return false;
     if (filter === "featured" && !p.featured) return false;
     if (categoryFilter && p.category !== categoryFilter) return false;
     return true;
@@ -59,11 +60,11 @@ export default function PortfolioList({ projects: initial }: Props) {
     fd.append("title", "Untitled Project");
     const res = await createProject(fd);
     setCreating(false);
-    if (res.success && "id" in res && res.id) {
+    if (res.success && res.id) {
       toast("Project created");
       router.push(`/dashboard/portfolio/editor?id=${res.id}`);
     } else {
-      toast(res.error || "Failed", "error");
+      toast(("error" in res ? res.error : null) || "Failed", "error");
     }
   };
 
@@ -91,16 +92,30 @@ export default function PortfolioList({ projects: initial }: Props) {
   const handleToggle = async (id: string, field: "published" | "featured") => {
     const proj = projects.find((p) => p.id === id);
     if (!proj) return;
-    const newVal = field === "published" ? !proj.published : !proj.featured;
-    setTogglingId(id);
-    setProjects((prev) => prev.map((p) => p.id === id ? { ...p, [field]: newVal } : p));
-    const res = await updateProjectField(id, field, newVal);
-    setTogglingId(null);
-    if (res.success) {
-      toast(`${field === "published" ? "Published" : "Featured"} ${newVal ? "on" : "off"}`);
+    if (field === "published") {
+      const newStatus = isPublished(proj) ? "draft" : "published";
+      setTogglingId(id);
+      setProjects((prev) => prev.map((p) => p.id === id ? { ...p, status: newStatus } : p));
+      const res = await updateProjectField(id, "published", newStatus !== "draft");
+      setTogglingId(null);
+      if (res.success) {
+        toast(`Published ${newStatus !== "draft" ? "on" : "off"}`);
+      } else {
+        setProjects((prev) => prev.map((p) => p.id === id ? { ...p, status: proj.status } : p));
+        toast(res.error || "Failed", "error");
+      }
     } else {
-      setProjects((prev) => prev.map((p) => p.id === id ? { ...p, [field]: !newVal } : p));
-      toast(res.error || "Failed", "error");
+      const newVal = !proj.featured;
+      setTogglingId(id);
+      setProjects((prev) => prev.map((p) => p.id === id ? { ...p, featured: newVal } : p));
+      const res = await updateProjectField(id, "featured", newVal);
+      setTogglingId(null);
+      if (res.success) {
+        toast(`Featured ${newVal ? "on" : "off"}`);
+      } else {
+        setProjects((prev) => prev.map((p) => p.id === id ? { ...p, featured: !newVal } : p));
+        toast(res.error || "Failed", "error");
+      }
     }
   };
 
@@ -147,6 +162,13 @@ export default function PortfolioList({ projects: initial }: Props) {
   };
 
   const getThumb = (p: DbProject) => p.img || "/images/placeholder.jpg";
+
+  const statusBadge = (p: DbProject) => {
+    const s = p.status || "published";
+    if (s === "draft") return <span style={{ padding: "2px 8px", background: "rgba(255,170,0,.85)", color: "#000", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>DRAFT</span>;
+    if (s === "archived") return <span style={{ padding: "2px 8px", background: "rgba(128,128,128,.85)", color: "#fff", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>ARCHIVED</span>;
+    return null;
+  };
 
   return (
     <div className="dash-content" style={{ padding: "2rem" }}>
@@ -224,18 +246,7 @@ export default function PortfolioList({ projects: initial }: Props) {
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/images/placeholder.jpg"; }} />
                 <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 4, flexWrap: "wrap" }}>
-                  {p.publish_status === "draft" && (
-                    <span style={{ padding: "2px 8px", background: "rgba(255,170,0,.85)", color: "#000", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>DRAFT</span>
-                  )}
-                  {p.publish_status === "archived" && (
-                    <span style={{ padding: "2px 8px", background: "rgba(128,128,128,.85)", color: "#fff", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>ARCHIVED</span>
-                  )}
-                  {p.publish_status === "scheduled" && (
-                    <span style={{ padding: "2px 8px", background: "rgba(0,212,255,.85)", color: "#000", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>SCHEDULED</span>
-                  )}
-                  {!p.published && p.publish_status !== "draft" && p.publish_status !== "archived" && p.publish_status !== "scheduled" && (
-                    <span style={{ padding: "2px 8px", background: "rgba(255,170,0,.85)", color: "#000", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>DRAFT</span>
-                  )}
+                  {statusBadge(p)}
                   {p.featured && (
                     <span style={{ padding: "2px 8px", background: "rgba(108,99,255,.9)", color: "#fff", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600 }}>FEATURED</span>
                   )}
@@ -259,7 +270,6 @@ export default function PortfolioList({ projects: initial }: Props) {
                 <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)", letterSpacing: ".04em", display: "flex", gap: ".5rem", flexWrap: "wrap" }}>
                   {p.category && <span>{p.category}</span>}
                   {p.year && <span>{p.year}</span>}
-                  {p.client && <span>{p.client}</span>}
                 </div>
               </div>
 
@@ -268,10 +278,10 @@ export default function PortfolioList({ projects: initial }: Props) {
                   onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/portfolio/editor?id=${p.id}`); }}>
                   <i className="bi bi-pencil" /> Edit
                 </button>
-                <button className={`dash-btn dash-btn-sm ${p.published ? "dash-btn-add" : ""}`}
+                <button className={`dash-btn dash-btn-sm ${isPublished(p) ? "dash-btn-add" : ""}`}
                   style={{ fontSize: ".65rem" }} disabled={togglingId === p.id}
                   onClick={(e) => { e.stopPropagation(); handleToggle(p.id, "published"); }}>
-                  <i className={p.published ? "bi bi-eye" : "bi bi-eye-slash"} />
+                  <i className={isPublished(p) ? "bi bi-eye" : "bi bi-eye-slash"} />
                 </button>
                 <button className={`dash-btn dash-btn-sm ${p.featured ? "dash-btn-add" : ""}`}
                   style={{ fontSize: ".65rem" }}
@@ -295,9 +305,10 @@ export default function PortfolioList({ projects: initial }: Props) {
           ))}
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: ".35rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "44px 1fr 120px 100px 100px 80px 80px 140px", gap: ".5rem", padding: ".5rem .75rem", fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)", letterSpacing: ".08em", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>
-            <span></span><span>Title</span><span>Category</span><span>Year</span><span>Status</span><span>Pub</span><span>Feat</span><span>Actions</span>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: ".35rem", minWidth: 700 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "44px 1fr 120px 100px 100px 80px 140px", gap: ".5rem", padding: ".5rem .75rem", fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)", letterSpacing: ".08em", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>
+            <span></span><span>Title</span><span>Category</span><span>Year</span><span>Status</span><span>Feat</span><span>Actions</span>
           </div>
           {filtered.map((p) => (
             <div key={p.id}
@@ -305,7 +316,7 @@ export default function PortfolioList({ projects: initial }: Props) {
               onDragOver={(e) => handleDragOver(e, p.id)}
               onDrop={() => handleDrop(p.id)} onDragEnd={() => { setDragId(null); setDragOverId(null); }}
               style={{
-                display: "grid", gridTemplateColumns: "44px 1fr 120px 100px 100px 80px 80px 140px", gap: ".5rem", padding: ".5rem .75rem",
+                display: "grid", gridTemplateColumns: "44px 1fr 120px 100px 100px 80px 140px", gap: ".5rem", padding: ".5rem .75rem",
                 alignItems: "center", background: "var(--bg-card)",
                 border: `1px solid ${dragOverId === p.id ? "var(--accent)" : "var(--border)"}`,
                 borderRadius: 8, opacity: dragId === p.id ? 0.5 : 1,
@@ -333,11 +344,7 @@ export default function PortfolioList({ projects: initial }: Props) {
               </div>
               <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".7rem", color: "var(--text-muted)" }}>{p.category || "-"}</span>
               <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".7rem", color: "var(--text-muted)" }}>{p.year || "-"}</span>
-              <span style={{ padding: "2px 8px", background: p.publish_status === "draft" ? "rgba(255,170,0,.85)" : p.publish_status === "archived" ? "rgba(128,128,128,.85)" : p.publish_status === "scheduled" ? "rgba(0,212,255,.85)" : "rgba(45,255,179,.85)", color: p.publish_status === "archived" ? "#fff" : "#000", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600, textAlign: "center", textTransform: "uppercase" }}>{p.publish_status || "published"}</span>
-              <button className={`dash-btn dash-btn-sm`} style={{ fontSize: ".6rem" }} disabled={togglingId === p.id}
-                onClick={() => handleToggle(p.id, "published")}>
-                <i className={p.published ? "bi bi-eye-fill" : "bi bi-eye-slash"} style={{ color: p.published ? "#2dffb3" : "var(--text-muted)" }} />
-              </button>
+              <span style={{ padding: "2px 8px", background: p.status === "draft" ? "rgba(255,170,0,.85)" : p.status === "archived" ? "rgba(128,128,128,.85)" : "rgba(45,255,179,.85)", color: p.status === "archived" ? "#fff" : "#000", borderRadius: 4, fontSize: ".55rem", fontFamily: "'Space Mono',monospace", letterSpacing: ".06em", fontWeight: 600, textAlign: "center", textTransform: "uppercase" }}>{p.status || "published"}</span>
               <button className={`dash-btn dash-btn-sm`} style={{ fontSize: ".6rem" }}
                 onClick={() => handleToggle(p.id, "featured")}>
                 <i className={p.featured ? "bi bi-star-fill" : "bi bi-star"} style={{ color: p.featured ? "#ffcc00" : "var(--text-muted)" }} />
@@ -354,6 +361,7 @@ export default function PortfolioList({ projects: initial }: Props) {
               </div>
             </div>
           ))}
+        </div>
         </div>
       )}
     </div>

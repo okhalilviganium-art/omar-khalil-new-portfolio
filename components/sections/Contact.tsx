@@ -76,7 +76,7 @@ export default function Contact({ data }: ContactProps) {
   };
 
   return (
-    <section className="section" id="sec-5">
+    <section className="section" id="sec-5" aria-label="Contact">
       <div className="section-content contact-wrap">
         <div className="section-label" id="dyn-ct-label">{data.label}</div>
         <div className="section-title" id="dyn-ct-title">{data.title}</div>

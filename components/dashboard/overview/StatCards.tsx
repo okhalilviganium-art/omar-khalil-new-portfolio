@@ -1,4 +1,4 @@
-import { getCachedProjects } from "@/lib/supabase/cached";
+import { getProjectsRaw } from "@/lib/actions/portfolio";
 import { getCachedServices } from "@/lib/supabase/cached";
 import { getCachedMessages } from "@/lib/supabase/cached";
 import { getStorageStats } from "@/lib/supabase/storage";
@@ -13,7 +13,7 @@ export default async function StatCards() {
 
   try {
     const [projects, services, messages, storage] = await Promise.all([
-      getCachedProjects().catch(() => []),
+      getProjectsRaw().catch(() => []),
       getCachedServices().catch(() => []),
       getCachedMessages().catch(() => []),
       getStorageStats().catch(() => ({ fileCount: 0, totalBytes: 0 })),

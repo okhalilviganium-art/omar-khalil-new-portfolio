@@ -44,7 +44,10 @@ export default function MediaDetailsPanel({ file, onClose, onRename, onReplace, 
   const [showMove, setShowMove] = useState(false);
   const nameRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setName(file.filename); setEditing(false); setShowMove(false); }, [file.id]);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => { setName(file.filename); setEditing(false); setShowMove(false); });
+    return () => cancelAnimationFrame(id);
+  }, [file.id]);
 
   const handleRename = () => { if (name.trim() && name !== file.filename) onRename(file.id, name.trim()); setEditing(false); };
 

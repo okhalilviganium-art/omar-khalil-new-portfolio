@@ -4,12 +4,24 @@ import type { Social } from "@/types";
 
 export async function getSocials(): Promise<Social[]> {
   const s = createClient();
+
+  console.log("========== getSocials ==========");
+  console.log(
+    "SUPABASE URL:",
+    process.env.NEXT_PUBLIC_SUPABASE_URL
+  );
+
   const { data, error } = await s
     .from("social_links")
     .select("*")
     .order("sort_order", { ascending: true });
+
+  console.log("SOCIAL LINKS ERROR:", error);
+  console.log("SOCIAL LINKS DATA:", data);
+
   if (error) throw error;
-  return (data as DbSocialLink[]).map((r) => ({
+
+  return ((data ?? []) as DbSocialLink[]).map((r) => ({
     icon: r.icon,
     url: r.url,
     title: r.title,
@@ -18,16 +30,25 @@ export async function getSocials(): Promise<Social[]> {
 
 export async function getSocialsRaw(): Promise<DbSocialLink[]> {
   const s = createClient();
+
   const { data, error } = await s
     .from("social_links")
     .select("*")
     .order("sort_order", { ascending: true });
+
+  console.log("SOCIAL LINKS RAW ERROR:", error);
+  console.log("SOCIAL LINKS RAW DATA:", data);
+
   if (error) throw error;
-  return data as DbSocialLink[];
+
+  return (data ?? []) as DbSocialLink[];
 }
 
-export async function syncSocials(socials: Social[]): Promise<void> {
+export async function syncSocials(
+  socials: Social[]
+): Promise<void> {
   const s = createClient();
+
   const rows = socials.map((soc, i) => ({
     icon: soc.icon,
     url: soc.url,
@@ -35,9 +56,16 @@ export async function syncSocials(socials: Social[]): Promise<void> {
     sort_order: i,
   }));
 
-  const { error: delErr } = await s.from("social_links").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  const { error: delErr } = await s
+    .from("social_links")
+    .delete()
+    .neq("id", "00000000-0000-0000-0000-000000000000");
+
   if (delErr) throw delErr;
 
-  const { error } = await s.from("social_links").insert(rows);
+  const { error } = await s
+    .from("social_links")
+    .insert(rows);
+
   if (error) throw error;
 }

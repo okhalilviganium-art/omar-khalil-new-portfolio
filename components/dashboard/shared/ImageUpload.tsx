@@ -4,11 +4,6 @@ import { useRef, useState, useCallback } from "react";
 import { uploadFileAction } from "@/lib/actions/storage";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 
-interface UploadResult {
-  url: string;
-  mediaId: string;
-}
-
 interface Props {
   name: string;
   label: string;

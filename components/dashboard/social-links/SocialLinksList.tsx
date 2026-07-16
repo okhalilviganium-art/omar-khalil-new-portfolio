@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import { createSocialLink, updateSocialLink, deleteSocialLink } from "@/lib/actions/social-links";
+import { useDraft } from "@/hooks/useDraft";
 import type { DbSocialLink } from "@/types/supabase";
 
 const ICON_HINT = "Icon class: bi-github, bi-linkedin, bi-twitter-x, bi-dribbble, bi-behance, etc.";
@@ -13,6 +14,19 @@ export default function SocialLinksList({ socialLinks }: { socialLinks: DbSocial
   const [showCreate, setShowCreate] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  const editDefaults = { icon: "", title: "", url: "" };
+  const { values: editVals, setValue: setEditVal, clearDraft: clearEditDraft } = useDraft(
+    editingId ? "social:" + editingId : "social:_none",
+    editDefaults
+  );
+
+  const startEdit = useCallback((link: DbSocialLink) => {
+    setEditingId(link.id);
+    setEditVal("icon", link.icon);
+    setEditVal("title", link.title);
+    setEditVal("url", link.url);
+  }, [setEditVal]);
 
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Delete "${title}"?`)) return;
@@ -31,17 +45,21 @@ export default function SocialLinksList({ socialLinks }: { socialLinks: DbSocial
     } catch { toast("Failed", "error"); }
   };
 
-  const handleUpdate = async (id: string, fd: FormData) => {
+  const applyUpdate = useCallback(async (id: string) => {
+    const fd = new FormData();
+    fd.append("icon", String(editVals.icon));
+    fd.append("title", String(editVals.title));
+    fd.append("url", String(editVals.url));
     try {
       const res = await updateSocialLink(id, fd);
-      if (res.success) { toast("Social link updated"); setEditingId(null); router.refresh(); }
+      if (res.success) { toast("Social link updated"); clearEditDraft(); setEditingId(null); router.refresh(); }
       else toast(res.error || "Failed", "error");
     } catch { toast("Failed", "error"); }
-  };
+  }, [editVals, clearEditDraft, toast, router]);
 
   return (
     <div className="dash-content" style={{ padding: "2rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: ".75rem" }}>
         <div className="dash-section-title" style={{ margin: 0, border: 0, padding: 0 }}>
           Social Links ({socialLinks.length})
         </div>
@@ -62,7 +80,31 @@ export default function SocialLinksList({ socialLinks }: { socialLinks: DbSocial
           {editingId === link.id ? (
             <div style={{ padding: "1rem" }}>
               <div className="dash-section-title">Editing: {link.title}</div>
-              <SocialLinkForm socialLink={link} onSubmit={(fd) => handleUpdate(link.id, fd)} onCancel={() => setEditingId(null)} />
+              <div style={{ marginTop: ".75rem" }}>
+                <div className="dash-grid dash-grid-2">
+                  <div className="dash-field">
+                    <label>Icon Class</label>
+                    <input value={String(editVals.icon)} onChange={(e) => setEditVal("icon", e.target.value)} required placeholder="bi-github" />
+                    <span style={{ color: "var(--text-muted)", fontSize: ".7rem", fontFamily: "'Space Mono',monospace", marginTop: ".25rem", display: "block" }}>
+                      {ICON_HINT}
+                    </span>
+                  </div>
+                  <div className="dash-field">
+                    <label>Title</label>
+                    <input value={String(editVals.title)} onChange={(e) => setEditVal("title", e.target.value)} required placeholder="GitHub" />
+                  </div>
+                </div>
+                <div className="dash-field">
+                  <label>URL</label>
+                  <input value={String(editVals.url)} onChange={(e) => setEditVal("url", e.target.value)} required placeholder="https://github.com/username" />
+                </div>
+                <div style={{ display: "flex", gap: ".75rem", marginTop: "1rem" }}>
+                  <button className="dash-btn dash-btn-save" onClick={() => applyUpdate(link.id)} data-shortcut="save">
+                    <i className="bi bi-check-lg" /> Apply
+                  </button>
+                  <button className="dash-btn dash-btn-danger dash-btn-sm" onClick={() => { setEditingId(null); clearEditDraft(); }}>Cancel</button>
+                </div>
+              </div>
             </div>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem" }}>
@@ -72,7 +114,7 @@ export default function SocialLinksList({ socialLinks }: { socialLinks: DbSocial
                 <div style={{ color: "var(--text-muted)", fontSize: ".8rem", fontFamily: "'Space Mono',monospace" }}>{link.url}</div>
               </div>
               <div className="dash-card-actions">
-                <button className="dash-btn dash-btn-add dash-btn-sm" onClick={() => setEditingId(link.id)}>
+                <button className="dash-btn dash-btn-add dash-btn-sm" onClick={() => startEdit(link)}>
                   <i className="bi bi-pencil" /> Edit
                 </button>
                 <button className="dash-btn dash-btn-danger dash-btn-sm" onClick={() => handleDelete(link.id, link.title)}>
@@ -93,30 +135,42 @@ export default function SocialLinksList({ socialLinks }: { socialLinks: DbSocial
   );
 }
 
-function SocialLinkForm({ socialLink, onSubmit, onCancel }: { socialLink?: DbSocialLink; onSubmit: (fd: FormData) => void; onCancel: () => void }) {
+function SocialLinkForm({ onSubmit, onCancel }: { onSubmit: (fd: FormData) => void; onCancel: () => void }) {
+  const [icon, setIcon] = useState("");
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+
+  const handleSubmit = () => {
+    const fd = new FormData();
+    fd.append("icon", icon);
+    fd.append("title", title);
+    fd.append("url", url);
+    onSubmit(fd);
+  };
+
   return (
-    <form action={onSubmit}>
+    <div>
       <div className="dash-grid dash-grid-2">
         <div className="dash-field">
           <label>Icon Class</label>
-          <input name="icon" defaultValue={socialLink?.icon || ""} required placeholder="bi-github" />
+          <input value={icon} onChange={(e) => setIcon(e.target.value)} required placeholder="bi-github" />
           <span style={{ color: "var(--text-muted)", fontSize: ".7rem", fontFamily: "'Space Mono',monospace", marginTop: ".25rem", display: "block" }}>
             {ICON_HINT}
           </span>
         </div>
         <div className="dash-field">
           <label>Title</label>
-          <input name="title" defaultValue={socialLink?.title || ""} required placeholder="GitHub" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="GitHub" />
         </div>
       </div>
       <div className="dash-field">
         <label>URL</label>
-        <input name="url" defaultValue={socialLink?.url || ""} required placeholder="https://github.com/username" />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="https://github.com/username" />
       </div>
       <div style={{ display: "flex", gap: ".75rem", marginTop: "1rem" }}>
-        <button className="dash-btn dash-btn-save" type="submit"><i className="bi bi-check-lg" /> {socialLink ? "Apply" : "Create"}</button>
-        <button className="dash-btn dash-btn-danger dash-btn-sm" type="button" onClick={onCancel}>Cancel</button>
+        <button className="dash-btn dash-btn-save" onClick={handleSubmit}><i className="bi bi-check-lg" /> Create</button>
+        <button className="dash-btn dash-btn-danger dash-btn-sm" onClick={onCancel}>Cancel</button>
       </div>
-    </form>
+    </div>
   );
 }

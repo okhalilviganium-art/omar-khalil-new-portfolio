@@ -17,7 +17,6 @@ const ALL_KEYS = [
   "hero_social_linkedin", "hero_social_behance", "hero_social_github",
   "hero_social_instagram", "hero_social_x",
   "about_image", "about_image_media_id", "about_experience", "about_label", "about_title", "about_description", "about_skills", "about_tools",
-  "about_stat_years", "about_stat_projects", "about_stat_clients", "about_stat_awards",
   "stats_label", "stats_title",
   "services_label", "services_title",
   "contact_label", "contact_title", "contact_subtitle", "contact_email",

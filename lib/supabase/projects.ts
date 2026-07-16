@@ -56,28 +56,24 @@ export async function syncProjects(projects: Project[]): Promise<void> {
 }
 
 function dbToProject(row: DbProject): Project {
-  let gallery: string[] = [];
-  try { gallery = JSON.parse(row.gallery_images || "[]"); } catch {}
-  let galleryMediaIds: string[] = [];
-  try {
-    if (Array.isArray(row.gallery_media_ids)) galleryMediaIds = row.gallery_media_ids;
-    else if (typeof row.gallery_media_ids === "string") galleryMediaIds = JSON.parse(row.gallery_media_ids || "[]");
-  } catch {}
+  const status = row.status || "published";
   return {
-    id: row.id, title: row.title, img: row.img, tags: row.tags,
-    desc: row.description, role: row.role, year: row.year, stack: row.stack,
-    live: row.live, overlayTag: row.overlay_tag, overlayName: row.overlay_name,
-    galleryImages: gallery, featured: row.featured, githubUrl: row.github_url,
-    slug: row.slug || "", category: row.category || "", client: row.client || "",
-    published: row.published !== false, galleryMediaIds, coverMediaId: row.cover_media_id || "",
-    videoMediaId: row.video_media_id || "", seoTitle: row.seo_title || "",
-    seoDescription: row.seo_description || "", technologies: row.technologies || "",
-    servicesText: row.services_text || "",
-    publishStatus: row.publish_status || "published",
+    id: row.id, title: row.title, slug: row.slug || "", img: row.img, tags: row.tags,
+    desc: row.description, shortDescription: row.short_description || "",
+    fullDescription: row.full_description || row.description || "",
+    role: row.role, year: row.year, stack: row.stack, live: row.live,
+    overlayTag: row.overlay_tag, overlayName: row.overlay_name,
+    featured: row.featured, category: row.category || "",
+    categories: [], published: status !== "draft", publishStatus: status,
+    client: row.client || "", thumbnailMediaId: row.thumbnail_media_id || "",
+    coverImageMediaId: row.cover_image_media_id || "",
+    gallery: [], links: [], techStack: [],
+    orderIndex: row.sort_order || 0, createdAt: row.created_at || "",
+    updatedAt: row.updated_at || null,
   };
 }
 
-function projectToDb(p: Project): DbProject {
+function projectToDb(p: Project) {
   return {
     id: p.id,
     title: p.title,
@@ -90,22 +86,9 @@ function projectToDb(p: Project): DbProject {
     live: p.live,
     overlay_tag: p.overlayTag || "",
     overlay_name: p.overlayName || "",
-    gallery_images: JSON.stringify(p.galleryImages || []),
-    featured: p.featured || false,
-    github_url: p.githubUrl || "",
-    sort_order: 0,
-    created_at: new Date().toISOString(),
-    slug: p.slug || "",
     category: p.category || "",
-    client: p.client || "",
-    published: p.published !== false,
-    gallery_media_ids: p.galleryMediaIds || [],
-    cover_media_id: p.coverMediaId || "",
-    video_media_id: p.videoMediaId || "",
-    seo_title: p.seoTitle || "",
-    seo_description: p.seoDescription || "",
-    technologies: p.technologies || "",
-    services_text: p.servicesText || "",
-    publish_status: p.publishStatus || "published",
+    status: p.publishStatus || (p.published !== false ? "published" : "draft"),
+    featured: p.featured || false,
+    sort_order: 0,
   };
 }

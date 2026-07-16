@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { dbToMessage } from "@/lib/supabase/messages";
 import type { DbMessage } from "@/types/supabase";
@@ -14,7 +14,8 @@ export function useMessagesRealtime(
   const [messages, setMessages] = useState<Message[]>(initial);
 
   useEffect(() => {
-    setMessages(initial);
+    const id = requestAnimationFrame(() => { setMessages(initial); });
+    return () => cancelAnimationFrame(id);
   }, [initial]);
 
   useEffect(() => {

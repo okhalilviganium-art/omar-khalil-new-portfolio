@@ -26,7 +26,7 @@ export default function FavoritesPanel() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { const id = requestAnimationFrame(() => { refresh(); }); return () => cancelAnimationFrame(id); }, [refresh]);
 
   const handleRemove = async (type: string, id: string) => {
     try {

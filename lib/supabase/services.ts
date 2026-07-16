@@ -1,9 +1,9 @@
-import { createClient } from "./client";
+import { createAdminClient } from "./admin";
 import type { DbService } from "@/types/supabase";
 import type { ServiceCard } from "@/types";
 
 export async function getServices(): Promise<ServiceCard[]> {
-  const s = createClient();
+  const s = createAdminClient();
   const { data, error } = await s
     .from("services")
     .select("*")
@@ -20,7 +20,7 @@ export async function getServices(): Promise<ServiceCard[]> {
 }
 
 export async function getServicesRaw(): Promise<DbService[]> {
-  const s = createClient();
+  const s = createAdminClient();
   const { data, error } = await s
     .from("services")
     .select("*")
@@ -30,7 +30,7 @@ export async function getServicesRaw(): Promise<DbService[]> {
 }
 
 export async function syncServices(cards: ServiceCard[]): Promise<void> {
-  const s = createClient();
+  const s = createAdminClient();
   const rows = cards.map((c, i) => ({
     icon: c.icon,
     name: c.name,

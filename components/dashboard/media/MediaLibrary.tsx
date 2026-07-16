@@ -86,11 +86,6 @@ export default function MediaLibrary({ initialFiles, initialFolders }: Props) {
     });
   };
 
-  const handleSelectAll = () => {
-    if (selected.size === filtered.length) { setSelected(new Set()); }
-    else { setSelected(new Set(filtered.map((f) => f.id))); }
-  };
-
   const handleOpen = (file: DbMediaFile) => {
     setDetailFile(file);
     if (!usageCache[file.id]) {

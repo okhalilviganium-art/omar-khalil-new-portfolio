@@ -1,5 +1,5 @@
 import { createAdminClient } from "./admin";
-import type { DbSiteSetting, DbProject } from "@/types/supabase";
+import type { DbSiteSetting } from "@/types/supabase";
 
 export interface MediaUsageRef {
   type: "hero" | "about" | "project" | "project_gallery" | "project_video";
@@ -42,22 +42,41 @@ export async function getMediaUsage(mediaId: string): Promise<MediaUsage> {
   // Scan projects for cover_media_id, video_media_id, gallery_media_ids
   const { data: projects } = await s
     .from("projects")
-    .select("id, title, cover_media_id, video_media_id, gallery_media_ids");
+    .select("id, title, cover_media_id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
   if (projects) {
-    for (const row of projects as DbProject[]) {
-      if (row.cover_media_id === mediaId) {
-        usedIn.push({ type: "project", field: "cover_media_id", projectId: row.id, projectTitle: row.title });
+    for (const row of projects) {
+      const r = row as Record<string, unknown>;
+      if (r.cover_media_id === mediaId) {
+        usedIn.push({ type: "project", field: "cover_media_id", projectId: r.id as string, projectTitle: r.title as string });
       }
-      if (row.video_media_id === mediaId) {
-        usedIn.push({ type: "project_video", field: "video_media_id", projectId: row.id, projectTitle: row.title });
+      if (r.video_media_id === mediaId) {
+        usedIn.push({ type: "project_video", field: "video_media_id", projectId: r.id as string, projectTitle: r.title as string });
+      }
+      if (r.thumbnail_media_id === mediaId) {
+        usedIn.push({ type: "project", field: "thumbnail_media_id", projectId: r.id as string, projectTitle: r.title as string });
+      }
+      if (r.cover_image_media_id === mediaId) {
+        usedIn.push({ type: "project", field: "cover_image_media_id", projectId: r.id as string, projectTitle: r.title as string });
       }
       let galleryIds: string[] = [];
       try {
-        if (Array.isArray(row.gallery_media_ids)) galleryIds = row.gallery_media_ids;
-        else if (typeof row.gallery_media_ids === "string") galleryIds = JSON.parse(row.gallery_media_ids || "[]");
+        if (Array.isArray(r.gallery_media_ids)) galleryIds = r.gallery_media_ids as string[];
+        else if (typeof r.gallery_media_ids === "string") galleryIds = JSON.parse((r.gallery_media_ids as string) || "[]");
       } catch {}
       if (galleryIds.includes(mediaId)) {
-        usedIn.push({ type: "project_gallery", field: "gallery_media_ids", projectId: row.id, projectTitle: row.title });
+        usedIn.push({ type: "project_gallery", field: "gallery_media_ids", projectId: r.id as string, projectTitle: r.title as string });
+      }
+    }
+  }
+
+  // Scan project_gallery table for media_id references
+  const { data: galleryItems } = await s
+    .from("project_gallery")
+    .select("id, project_id, media_id");
+  if (galleryItems) {
+    for (const item of galleryItems as { id: string; project_id: string; media_id: string }[]) {
+      if (item.media_id === mediaId) {
+        usedIn.push({ type: "project_gallery", field: "project_gallery.media_id", projectId: item.project_id });
       }
     }
   }
@@ -97,19 +116,32 @@ export async function findUnusedMedia(): Promise<string[]> {
   // projects
   const { data: projects } = await s
     .from("projects")
-    .select("cover_media_id, video_media_id, gallery_media_ids");
+    .select("id, cover_media_id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
   if (projects) {
-    for (const row of projects as DbProject[]) {
-      if (row.cover_media_id) referencedIds.add(row.cover_media_id);
-      if (row.video_media_id) referencedIds.add(row.video_media_id);
+    for (const row of projects) {
+      const r = row as Record<string, unknown>;
+      if (r.cover_media_id) referencedIds.add(r.cover_media_id as string);
+      if (r.video_media_id) referencedIds.add(r.video_media_id as string);
+      if (r.thumbnail_media_id) referencedIds.add(r.thumbnail_media_id as string);
+      if (r.cover_image_media_id) referencedIds.add(r.cover_image_media_id as string);
       let galleryIds: string[] = [];
       try {
-        if (Array.isArray(row.gallery_media_ids)) galleryIds = row.gallery_media_ids;
-        else if (typeof row.gallery_media_ids === "string") galleryIds = JSON.parse(row.gallery_media_ids || "[]");
+        if (Array.isArray(r.gallery_media_ids)) galleryIds = r.gallery_media_ids as string[];
+        else if (typeof r.gallery_media_ids === "string") galleryIds = JSON.parse((r.gallery_media_ids as string) || "[]");
       } catch {}
       for (const gid of galleryIds) {
         if (gid) referencedIds.add(gid);
       }
+    }
+  }
+
+  // project_gallery table
+  const { data: galleryItems } = await s
+    .from("project_gallery")
+    .select("media_id");
+  if (galleryItems) {
+    for (const item of galleryItems as { media_id: string }[]) {
+      if (item.media_id) referencedIds.add(item.media_id);
     }
   }
 
@@ -141,19 +173,32 @@ export async function findBrokenMediaReferences(): Promise<MediaUsageRef[]> {
   // projects
   const { data: projects } = await s
     .from("projects")
-    .select("id, title, cover_media_id, video_media_id, gallery_media_ids");
+    .select("id, title, cover_media_id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
   if (projects) {
-    for (const row of projects as DbProject[]) {
-      if (row.cover_media_id) refs.push({ id: row.cover_media_id, ref: { type: "project", field: "cover_media_id", projectId: row.id, projectTitle: row.title } });
-      if (row.video_media_id) refs.push({ id: row.video_media_id, ref: { type: "project_video", field: "video_media_id", projectId: row.id, projectTitle: row.title } });
+    for (const row of projects) {
+      const r = row as Record<string, unknown>;
+      if (r.cover_media_id) refs.push({ id: r.cover_media_id as string, ref: { type: "project", field: "cover_media_id", projectId: r.id as string, projectTitle: r.title as string } });
+      if (r.video_media_id) refs.push({ id: r.video_media_id as string, ref: { type: "project_video", field: "video_media_id", projectId: r.id as string, projectTitle: r.title as string } });
+      if (r.thumbnail_media_id) refs.push({ id: r.thumbnail_media_id as string, ref: { type: "project", field: "thumbnail_media_id", projectId: r.id as string, projectTitle: r.title as string } });
+      if (r.cover_image_media_id) refs.push({ id: r.cover_image_media_id as string, ref: { type: "project", field: "cover_image_media_id", projectId: r.id as string, projectTitle: r.title as string } });
       let galleryIds: string[] = [];
       try {
-        if (Array.isArray(row.gallery_media_ids)) galleryIds = row.gallery_media_ids;
-        else if (typeof row.gallery_media_ids === "string") galleryIds = JSON.parse(row.gallery_media_ids || "[]");
+        if (Array.isArray(r.gallery_media_ids)) galleryIds = r.gallery_media_ids as string[];
+        else if (typeof r.gallery_media_ids === "string") galleryIds = JSON.parse((r.gallery_media_ids as string) || "[]");
       } catch {}
       for (const gid of galleryIds) {
-        if (gid) refs.push({ id: gid, ref: { type: "project_gallery", field: "gallery_media_ids", projectId: row.id, projectTitle: row.title } });
+        if (gid) refs.push({ id: gid, ref: { type: "project_gallery", field: "gallery_media_ids", projectId: r.id as string, projectTitle: r.title as string } });
       }
+    }
+  }
+
+  // project_gallery table
+  const { data: galleryItems } = await s
+    .from("project_gallery")
+    .select("id, project_id, media_id");
+  if (galleryItems) {
+    for (const item of galleryItems as { id: string; project_id: string; media_id: string }[]) {
+      if (item.media_id) refs.push({ id: item.media_id, ref: { type: "project_gallery", field: "project_gallery.media_id", projectId: item.project_id } });
     }
   }
 

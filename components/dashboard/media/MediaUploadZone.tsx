@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback, useImperativeHandle, type ChangeEvent, type DragEvent } from "react";
-import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import { uploadFileAction } from "@/lib/actions/storage";
 import type { DbMediaFile } from "@/types/supabase";
 
@@ -20,22 +19,11 @@ interface Props {
 }
 
 export default function MediaUploadZone({ folder, onComplete, uploadRef }: Props) {
-  const { toast } = useToast();
   const [dragging, setDragging] = useState(false);
   const [queue, setQueue] = useState<UploadItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const counterRef = useRef(0);
-
-  const addFiles = useCallback((files: FileList | File[]) => {
-    const items: UploadItem[] = Array.from(files).map((f) => ({
-      id: `upload-${++counterRef.current}`,
-      file: f,
-      progress: 0,
-      status: "pending" as const,
-    }));
-    setQueue((prev) => [...prev, ...items]);
-  }, []);
 
   const processQueue = useCallback(async (items: UploadItem[]) => {
     setUploading(true);

@@ -46,7 +46,7 @@ export default function RecycleBinContent() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { const id = requestAnimationFrame(() => { refresh(); }); return () => cancelAnimationFrame(id); }, [refresh]);
 
   const handleRestore = async (item: DbRecycleBin) => {
     setActionId(item.id);
@@ -112,7 +112,7 @@ export default function RecycleBinContent() {
 
   return (
     <div className="dash-content" style={{ padding: "2rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: ".75rem" }}>
         <div>
           <div className="dash-section-title" style={{ margin: 0, border: 0, padding: 0, marginBottom: ".25rem" }}>Recycle Bin</div>
           <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".65rem", color: "var(--text-muted)" }}>

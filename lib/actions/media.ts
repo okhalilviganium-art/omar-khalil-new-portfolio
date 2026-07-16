@@ -6,7 +6,6 @@ import {
   listMediaFiles as _listMedia,
   listAllMediaFiles as _listAllMedia,
   getMediaByIds as _getMediaByIds,
-  getMediaById as _getMediaById,
   getMediaStats as _stats,
   updateMediaFile as _updateMedia,
   moveMediaFiles as _moveMedia,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import { useUnsavedChanges, UnsavedChangesPrompt } from "@/components/dashboard/shared/UnsavedChangesGuard";
 import { addRecentItem } from "@/components/dashboard/shared/RecentItems";
@@ -9,6 +9,7 @@ import { updateSiteSettings } from "@/lib/actions/site-settings";
 import ImageUpload from "@/components/dashboard/shared/ImageUpload";
 import FileUpload from "@/components/dashboard/shared/FileUpload";
 import HistoryPanel from "@/components/dashboard/shared/HistoryPanel";
+import { useDraft } from "@/hooks/useDraft";
 
 interface HeroEditorProps {
   siteSettings: Record<string, string>;
@@ -17,14 +18,42 @@ interface HeroEditorProps {
 export default function HeroEditor({ siteSettings }: HeroEditorProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [hasChanges, setHasChanges] = useState(false);
-  const { showPrompt, confirmNavigation, handleConfirm, handleCancel } = useUnsavedChanges(hasChanges);
 
-  const handleSave = async (fd: FormData) => {
+  const defaults = {
+    home_pre: siteSettings["home_pre"] || "",
+    home_name: siteSettings["home_name"] || "",
+    home_role: siteSettings["home_role"] || "",
+    home_subtitle: siteSettings["home_subtitle"] || "",
+    home_status: siteSettings["home_status"] || "",
+    hero_cta1_text: siteSettings["hero_cta1_text"] || "",
+    hero_cta1_url: siteSettings["hero_cta1_url"] || "",
+    hero_cta1_style: siteSettings["hero_cta1_style"] || "primary",
+    hero_cta2_text: siteSettings["hero_cta2_text"] || "",
+    hero_cta2_url: siteSettings["hero_cta2_url"] || "",
+    hero_cta2_style: siteSettings["hero_cta2_style"] || "outline",
+    hero_social_linkedin: siteSettings["hero_social_linkedin"] || "",
+    hero_social_behance: siteSettings["hero_social_behance"] || "",
+    hero_social_github: siteSettings["hero_social_github"] || "",
+    hero_social_instagram: siteSettings["hero_social_instagram"] || "",
+    hero_social_x: siteSettings["hero_social_x"] || "",
+    hero_image: siteSettings["hero_image"] || "",
+    hero_bg: siteSettings["hero_bg"] || "",
+    resume_url: siteSettings["resume_url"] || "",
+  };
+
+  const { values, setValue, clearDraft, hasDraft, isStale, restoreSnapshot } = useDraft("hero", defaults);
+  const [saving, setSaving] = useState(false);
+  const { showPrompt, handleConfirm, handleCancel } = useUnsavedChanges(hasDraft);
+
+  const doSave = async () => {
+    setSaving(true);
+    const fd = new FormData();
+    Object.entries(values).forEach(([k, v]) => fd.append(k, String(v)));
     const res = await updateSiteSettings(fd);
+    setSaving(false);
     if (res.success) {
+      clearDraft();
       toast("Hero section saved");
-      setHasChanges(false);
       addRecentItem("hero", "hero", "Hero Settings", "/dashboard/hero");
       router.refresh();
     } else {
@@ -35,165 +64,185 @@ export default function HeroEditor({ siteSettings }: HeroEditorProps) {
   return (
     <div className="dash-content" style={{ padding: "2rem" }}>
       <UnsavedChangesPrompt show={showPrompt} onConfirm={handleConfirm} onCancel={handleCancel} />
-      <div
-        className="dash-section-title"
-        style={{ margin: 0, border: 0, padding: 0, marginBottom: "1.5rem" }}
-      >
-        Hero Section
+
+      {hasDraft && isStale && (
+        <div style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".6rem 1rem", marginBottom: "1.5rem", borderRadius: 8, background: "rgba(255,183,77,.08)", border: "1px solid rgba(255,183,77,.25)", fontFamily: "'Space Mono',monospace", fontSize: ".65rem", letterSpacing: ".04em", color: "#ffb74d" }}>
+          <i className="bi bi-info-circle" />
+          The published version has changed since your last edit. Your draft is preserved.
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: ".75rem" }}>
+        <div className="dash-section-title" style={{ margin: 0, border: 0, padding: 0 }}>Hero Section</div>
+        <button className="dash-btn dash-btn-save" data-shortcut="save" onClick={doSave} disabled={saving} style={{
+          fontFamily: "'Space Mono', monospace", fontSize: ".65rem", letterSpacing: ".08em",
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          {saving ? (
+            <><span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent2)", animation: "pulse 1s infinite" }} /> Saving...</>
+          ) : (
+            <><i className="bi bi-check-lg" /> Save Hero</>
+          )}
+        </button>
       </div>
 
-      <form action={handleSave} onChange={() => setHasChanges(true)}>
-        {/* GENERAL */}
-        <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="dash-section-title">General</div>
+      {/* GENERAL */}
+      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
+        <div className="dash-section-title">General</div>
 
-          <div className="dash-field" style={{ marginTop: "1rem" }}>
-            <label>Pre-title</label>
-            <input name="home_pre" defaultValue={siteSettings["home_pre"] || ""} placeholder="e.g. MULTIMEDIA DESIGNER" />
+        <div className="dash-field" style={{ marginTop: "1rem" }}>
+          <label>Pre-title</label>
+          <input value={values.home_pre} onChange={(e) => setValue("home_pre", e.target.value)} placeholder="e.g. MULTIMEDIA DESIGNER" />
+        </div>
+
+        <div className="dash-field" style={{ marginTop: "1rem" }}>
+          <label>Name</label>
+          <input value={values.home_name} onChange={(e) => setValue("home_name", e.target.value)} placeholder="e.g. Omar Khalil" />
+        </div>
+
+        <div className="dash-field" style={{ marginTop: "1rem" }}>
+          <label>Headline (role)</label>
+          <textarea rows={3} value={values.home_role} onChange={(e) => setValue("home_role", e.target.value)} placeholder="HTML allowed — use &lt;span&gt; for accent" />
+          <span className="hint">HTML allowed — wrap text in &lt;span&gt; for accent color</span>
+        </div>
+
+        <div className="dash-field" style={{ marginTop: "1rem" }}>
+          <label>Subtitle</label>
+          <textarea rows={2} value={values.home_subtitle} onChange={(e) => setValue("home_subtitle", e.target.value)} placeholder="Short bio line beneath the headline" />
+        </div>
+
+        <div className="dash-field" style={{ marginTop: "1rem" }}>
+          <label>Availability Status</label>
+          <input value={values.home_status} onChange={(e) => setValue("home_status", e.target.value)} placeholder="e.g. Available for work" />
+        </div>
+      </div>
+
+      {/* MEDIA */}
+      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
+        <div className="dash-section-title">Media</div>
+
+        <div style={{ marginTop: "1rem" }}>
+          <ImageUpload
+            name="hero_image"
+            label="Portrait Image"
+            value={values.hero_image}
+            folder="hero"
+            onUpload={(url) => setValue("hero_image", url)}
+          />
+        </div>
+
+        <div style={{ marginTop: "1rem" }}>
+          <ImageUpload
+            name="hero_bg"
+            label="Background Image"
+            value={values.hero_bg}
+            folder="hero"
+            onUpload={(url) => setValue("hero_bg", url)}
+          />
+        </div>
+      </div>
+
+      {/* CTA BUTTONS */}
+      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
+        <div className="dash-section-title">Call to Action Buttons</div>
+
+        <div className="dash-grid dash-grid-3" style={{ marginTop: "1rem" }}>
+          <div className="dash-field">
+            <label>Button 1 — Text</label>
+            <input value={values.hero_cta1_text} onChange={(e) => setValue("hero_cta1_text", e.target.value)} placeholder="e.g. Explore My Work" />
           </div>
-
-          <div className="dash-field" style={{ marginTop: "1rem" }}>
-            <label>Name</label>
-            <input name="home_name" defaultValue={siteSettings["home_name"] || ""} placeholder="e.g. Omar Khalil" />
+          <div className="dash-field">
+            <label>Button 1 — URL</label>
+            <input value={values.hero_cta1_url} onChange={(e) => setValue("hero_cta1_url", e.target.value)} placeholder="e.g. #portfolio or https://..." />
           </div>
-
-          <div className="dash-field" style={{ marginTop: "1rem" }}>
-            <label>Headline (role)</label>
-            <textarea name="home_role" rows={3} defaultValue={siteSettings["home_role"] || ""} placeholder="HTML allowed — use &lt;span&gt; for accent" />
-            <span className="hint">HTML allowed — wrap text in &lt;span&gt; for accent color</span>
-          </div>
-
-          <div className="dash-field" style={{ marginTop: "1rem" }}>
-            <label>Subtitle</label>
-            <textarea name="home_subtitle" rows={2} defaultValue={siteSettings["home_subtitle"] || ""} placeholder="Short bio line beneath the headline" />
-          </div>
-
-          <div className="dash-field" style={{ marginTop: "1rem" }}>
-            <label>Availability Status</label>
-            <input name="home_status" defaultValue={siteSettings["home_status"] || ""} placeholder="e.g. Available for work" />
+          <div className="dash-field">
+            <label>Button 1 — Style</label>
+            <select value={values.hero_cta1_style} onChange={(e) => setValue("hero_cta1_style", e.target.value)}>
+              <option value="primary">Primary (filled glow)</option>
+              <option value="outline">Outline (ghost)</option>
+            </select>
           </div>
         </div>
 
-        {/* MEDIA */}
-        <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="dash-section-title">Media</div>
-
-          <div style={{ marginTop: "1rem" }}>
-            <ImageUpload
-              name="hero_image"
-              label="Portrait Image"
-              value={siteSettings["hero_image"] || ""}
-              folder="hero"
-            />
+        <div className="dash-grid dash-grid-3" style={{ marginTop: "1rem" }}>
+          <div className="dash-field">
+            <label>Button 2 — Text</label>
+            <input value={values.hero_cta2_text} onChange={(e) => setValue("hero_cta2_text", e.target.value)} placeholder="e.g. Get In Touch" />
           </div>
-
-          <div style={{ marginTop: "1rem" }}>
-            <ImageUpload
-              name="hero_bg"
-              label="Background Image"
-              value={siteSettings["hero_bg"] || ""}
-              folder="hero"
-            />
+          <div className="dash-field">
+            <label>Button 2 — URL</label>
+            <input value={values.hero_cta2_url} onChange={(e) => setValue("hero_cta2_url", e.target.value)} placeholder="e.g. #contact or https://..." />
+          </div>
+          <div className="dash-field">
+            <label>Button 2 — Style</label>
+            <select value={values.hero_cta2_style} onChange={(e) => setValue("hero_cta2_style", e.target.value)}>
+              <option value="primary">Primary (filled glow)</option>
+              <option value="outline">Outline (ghost)</option>
+            </select>
           </div>
         </div>
+      </div>
 
-        {/* CTA BUTTONS */}
-        <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="dash-section-title">Call to Action Buttons</div>
+      {/* RESUME */}
+      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
+        <div className="dash-section-title">Resume</div>
 
-          <div className="dash-grid dash-grid-3" style={{ marginTop: "1rem" }}>
-            <div className="dash-field">
-              <label>Button 1 — Text</label>
-              <input name="hero_cta1_text" defaultValue={siteSettings["hero_cta1_text"] || ""} placeholder="e.g. Explore My Work" />
-            </div>
-            <div className="dash-field">
-              <label>Button 1 — URL</label>
-              <input name="hero_cta1_url" defaultValue={siteSettings["hero_cta1_url"] || ""} placeholder="e.g. #portfolio or https://..." />
-            </div>
-            <div className="dash-field">
-              <label>Button 1 — Style</label>
-              <select name="hero_cta1_style" defaultValue={siteSettings["hero_cta1_style"] || "primary"}>
-                <option value="primary">Primary (filled glow)</option>
-                <option value="outline">Outline (ghost)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="dash-grid dash-grid-3" style={{ marginTop: "1rem" }}>
-            <div className="dash-field">
-              <label>Button 2 — Text</label>
-              <input name="hero_cta2_text" defaultValue={siteSettings["hero_cta2_text"] || ""} placeholder="e.g. Get In Touch" />
-            </div>
-            <div className="dash-field">
-              <label>Button 2 — URL</label>
-              <input name="hero_cta2_url" defaultValue={siteSettings["hero_cta2_url"] || ""} placeholder="e.g. #contact or https://..." />
-            </div>
-            <div className="dash-field">
-              <label>Button 2 — Style</label>
-              <select name="hero_cta2_style" defaultValue={siteSettings["hero_cta2_style"] || "outline"}>
-                <option value="primary">Primary (filled glow)</option>
-                <option value="outline">Outline (ghost)</option>
-              </select>
-            </div>
-          </div>
+        <div style={{ marginTop: "1rem" }}>
+          <FileUpload
+            name="resume_url"
+            label="Resume File (PDF)"
+            value={values.resume_url}
+            folder="resume"
+            accept=".pdf,.doc,.docx"
+            onUpload={(url) => setValue("resume_url", url)}
+          />
         </div>
+      </div>
 
-        {/* RESUME */}
-        <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="dash-section-title">Resume</div>
+      {/* SOCIAL LINKS */}
+      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
+        <div className="dash-section-title">Social Links</div>
 
-          <div style={{ marginTop: "1rem" }}>
-            <FileUpload
-              name="resume_url"
-              label="Resume File (PDF)"
-              value={siteSettings["resume_url"] || ""}
-              folder="resume"
-              accept=".pdf,.doc,.docx"
-            />
+        <div className="dash-grid dash-grid-2" style={{ marginTop: "1rem" }}>
+          <div className="dash-field">
+            <label><i className="bi bi-linkedin" /> LinkedIn</label>
+            <input value={values.hero_social_linkedin} onChange={(e) => setValue("hero_social_linkedin", e.target.value)} placeholder="https://linkedin.com/in/..." />
+          </div>
+          <div className="dash-field">
+            <label><i className="bi bi-behance" /> Behance</label>
+            <input value={values.hero_social_behance} onChange={(e) => setValue("hero_social_behance", e.target.value)} placeholder="https://behance.net/..." />
+          </div>
+          <div className="dash-field">
+            <label><i className="bi bi-github" /> GitHub</label>
+            <input value={values.hero_social_github} onChange={(e) => setValue("hero_social_github", e.target.value)} placeholder="https://github.com/..." />
+          </div>
+          <div className="dash-field">
+            <label><i className="bi bi-instagram" /> Instagram</label>
+            <input value={values.hero_social_instagram} onChange={(e) => setValue("hero_social_instagram", e.target.value)} placeholder="https://instagram.com/..." />
+          </div>
+          <div className="dash-field">
+            <label><i className="bi bi-twitter-x" /> X (Twitter)</label>
+            <input value={values.hero_social_x} onChange={(e) => setValue("hero_social_x", e.target.value)} placeholder="https://x.com/..." />
           </div>
         </div>
+      </div>
 
-        {/* SOCIAL LINKS */}
-        <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="dash-section-title">Social Links</div>
+      {/* LIVE PREVIEW */}
+      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
+        <div className="dash-section-title">Live Preview</div>
 
-          <div className="dash-grid dash-grid-2" style={{ marginTop: "1rem" }}>
-            <div className="dash-field">
-              <label><i className="bi bi-linkedin" /> LinkedIn</label>
-              <input name="hero_social_linkedin" defaultValue={siteSettings["hero_social_linkedin"] || ""} placeholder="https://linkedin.com/in/..." />
-            </div>
-            <div className="dash-field">
-              <label><i className="bi bi-behance" /> Behance</label>
-              <input name="hero_social_behance" defaultValue={siteSettings["hero_social_behance"] || ""} placeholder="https://behance.net/..." />
-            </div>
-            <div className="dash-field">
-              <label><i className="bi bi-github" /> GitHub</label>
-              <input name="hero_social_github" defaultValue={siteSettings["hero_social_github"] || ""} placeholder="https://github.com/..." />
-            </div>
-            <div className="dash-field">
-              <label><i className="bi bi-instagram" /> Instagram</label>
-              <input name="hero_social_instagram" defaultValue={siteSettings["hero_social_instagram"] || ""} placeholder="https://instagram.com/..." />
-            </div>
-            <div className="dash-field">
-              <label><i className="bi bi-twitter-x" /> X (Twitter)</label>
-              <input name="hero_social_x" defaultValue={siteSettings["hero_social_x"] || ""} placeholder="https://x.com/..." />
-            </div>
-          </div>
-        </div>
+        <HeroPreview settings={{ ...siteSettings, ...values }} />
+      </div>
 
-        {/* LIVE PREVIEW */}
-        <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-          <div className="dash-section-title">Live Preview</div>
+      <HistoryPanel
+        entityType="settings"
+        entityId="global"
+        currentSnapshot={values}
+        localOnly
+        onRestore={(snap) => restoreSnapshot(snap as typeof defaults)}
+      />
 
-          <HeroPreview settings={siteSettings} />
-        </div>
-
-        <button className="dash-btn dash-btn-save" type="submit" data-shortcut="save">
-          <i className="bi bi-check-lg" /> Save Hero
-        </button>
-      </form>
-
-      <HistoryPanel entityType="settings" entityId="global" currentSnapshot={siteSettings} onRestore={() => router.refresh()} />
+      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }`}</style>
     </div>
   );
 }

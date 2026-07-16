@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { DbProject, DbService, DbMediaFile, DbMessage, DbSiteSetting } from "@/types/supabase";
 
 export interface SearchResult {
   type: "project" | "service" | "media" | "message" | "settings";
@@ -19,11 +18,11 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
 
   const { data: projects } = await s
-    .from("projects").select("id, title, description, slug")
+    .from("projects").select("id, title, description")
     .or(`title.ilike.%${q}%,description.ilike.%${q}%`)
     .limit(5);
   if (projects) {
-    for (const p of projects as DbProject[]) {
+    for (const p of projects) {
       results.push({
         type: "project", id: p.id, title: p.title,
         subtitle: p.description?.slice(0, 80) || "Project",
@@ -37,7 +36,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     .or(`name.ilike.%${q}%,description.ilike.%${q}%`)
     .limit(5);
   if (services) {
-    for (const svc of services as DbService[]) {
+    for (const svc of services) {
       results.push({
         type: "service", id: svc.id, title: svc.name,
         subtitle: svc.description?.slice(0, 80) || "Service",
@@ -51,7 +50,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     .or(`filename.ilike.%${q}%,folder.ilike.%${q}%`)
     .limit(5);
   if (media) {
-    for (const m of media as DbMediaFile[]) {
+    for (const m of media) {
       results.push({
         type: "media", id: m.id, title: m.filename,
         subtitle: m.folder || "Media",
@@ -65,7 +64,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     .or(`name.ilike.%${q}%,subject.ilike.%${q}%,email.ilike.%${q}%`)
     .limit(5);
   if (messages) {
-    for (const m of messages as DbMessage[]) {
+    for (const m of messages) {
       results.push({
         type: "message", id: m.id, title: m.name,
         subtitle: m.subject || m.email,

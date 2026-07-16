@@ -48,7 +48,7 @@ const SORT_OPTIONS: { key: SortOption; label: string }[] = [
 export default function MediaToolbar({
   search, onSearchChange, filter, onFilterChange,
   sort, onSortChange, view, onViewChange,
-  currentFolder, onFolderChange, folders, fileCount,
+  fileCount,
   onUpload, onNewFolder,
 }: Props) {
   const [showSort, setShowSort] = useState(false);

@@ -1,11 +1,11 @@
-import { getCachedProjects } from "@/lib/supabase/cached";
+import { getProjectsRaw } from "@/lib/actions/portfolio";
 import Link from "next/link";
 
 export default async function LatestProjects() {
-  let projects: Awaited<ReturnType<typeof getCachedProjects>> = [];
+  let projects: Awaited<ReturnType<typeof getProjectsRaw>> = [];
 
   try {
-    projects = await getCachedProjects();
+    projects = await getProjectsRaw();
   } catch {}
 
   const latest = projects.slice(0, 4);
@@ -87,7 +87,7 @@ export default async function LatestProjects() {
                   )}
                 </h4>
 
-                <p>{p.desc}</p>
+                <p>{p.short_description || p.description}</p>
               </div>
 
               <Link

@@ -32,7 +32,7 @@ export default function NotificationCenter() {
     setLoading(false);
   }, [setUnreadCount]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { const id = requestAnimationFrame(() => { refresh(); }); return () => cancelAnimationFrame(id); }, [refresh]);
 
   const handleMarkRead = async (id: string) => {
     try { await markAsRead(id); } catch { return; }

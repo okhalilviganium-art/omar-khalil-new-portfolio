@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getVersions, restoreVersion, compareSnapshots } from "@/lib/actions/versions";
+import { getVersions, restoreVersion } from "@/lib/actions/versions";
 import type { DbVersion } from "@/types/supabase";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import CompareVersions from "./CompareVersions";
@@ -11,6 +11,8 @@ interface Props {
   entityId: string;
   currentSnapshot: Record<string, unknown>;
   onRestore?: (snapshot: Record<string, unknown>) => void;
+  /** When true, Restore only loads the snapshot into the editor (no DB write). User must Save to publish. */
+  localOnly?: boolean;
 }
 
 function relativeTime(dateStr: string): string {
@@ -24,10 +26,10 @@ function relativeTime(dateStr: string): string {
   return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
 }
 
-export default function HistoryPanel({ entityType, entityId, currentSnapshot, onRestore }: Props) {
+export default function HistoryPanel({ entityType, entityId, currentSnapshot, onRestore, localOnly }: Props) {
   const { toast } = useToast();
   const [versions, setVersions] = useState<DbVersion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(true);
   const [restoring, setRestoring] = useState<string | null>(null);
   const [compareWith, setCompareWith] = useState<DbVersion | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -41,11 +43,17 @@ export default function HistoryPanel({ entityType, entityId, currentSnapshot, on
     }
   }, [entityType, entityId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { const id = requestAnimationFrame(() => { load(); }); return () => cancelAnimationFrame(id); }, [load]);
 
   const handleRestore = async (ver: DbVersion) => {
     setRestoring(ver.id);
     try {
+      if (localOnly) {
+        if (onRestore && ver.snapshot) onRestore(ver.snapshot as Record<string, unknown>);
+        toast("Snapshot loaded into editor — click Save to publish");
+        setRestoring(null);
+        return;
+      }
       const res = await restoreVersion(ver.id);
       if (res.success) {
         toast(`Restored to v${ver.version_number}`);

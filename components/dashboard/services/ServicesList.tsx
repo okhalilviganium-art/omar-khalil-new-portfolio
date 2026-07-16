@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import {
@@ -10,6 +10,7 @@ import {
 import IconPicker from "@/components/dashboard/shared/IconPicker";
 import HistoryPanel from "@/components/dashboard/shared/HistoryPanel";
 import Services from "@/components/sections/Services";
+import { useDraft } from "@/hooks/useDraft";
 import type { DbService } from "@/types/supabase";
 
 type Filter = "all" | "active" | "hidden";
@@ -50,48 +51,13 @@ export default function ServicesList({ services: initial }: { services: DbServic
     router.refresh();
   }, [router]);
 
-  /* ── CREATE ── */
   const handleCreate = useCallback(async (fd: FormData) => {
-    const tempId = "temp-" + Date.now();
-    const optimistic: DbService = {
-      id: tempId,
-      icon: (fd.get("icon") as string) || "bi-stars",
-      name: (fd.get("name") as string) || "New Service",
-      description: (fd.get("description") as string) || "",
-      category: (fd.get("category") as string) || "",
-      active: fd.get("active") !== "false",
-      sort_order: services.length,
-      created_at: new Date().toISOString(),
-    };
-    sync([optimistic, ...services]);
     setShowCreate(false);
     const res = await createService(fd);
     if (res.success) { toast("Service created"); router.refresh(); }
-    else { toast(res.error || "Failed", "error"); sync(services); }
-  }, [services, sync, toast, router]);
+    else toast(res.error || "Failed", "error");
+  }, [toast, router]);
 
-  /* ── UPDATE ── */
-  const handleUpdate = useCallback(async (id: string, fd: FormData) => {
-    const prev = [...services];
-    const idx = services.findIndex((s) => s.id === id);
-    if (idx === -1) return;
-    const patched = [...services];
-    patched[idx] = {
-      ...patched[idx],
-      icon: (fd.get("icon") as string) || patched[idx].icon,
-      name: (fd.get("name") as string) || patched[idx].name,
-      description: (fd.get("description") as string) || patched[idx].description,
-      category: (fd.get("category") as string) || patched[idx].category,
-      active: fd.get("active") !== "false",
-    };
-    sync(patched);
-    setEditingId(null);
-    const res = await updateService(id, fd);
-    if (res.success) { toast("Service updated"); router.refresh(); }
-    else { toast(res.error || "Failed", "error"); sync(prev); }
-  }, [services, sync, toast, router]);
-
-  /* ── TOGGLE ACTIVE ── */
   const handleToggle = useCallback(async (id: string, currentActive: boolean) => {
     const prev = [...services];
     sync(services.map((s) => s.id === id ? { ...s, active: !currentActive } : s));
@@ -100,7 +66,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
     else { toast(res.error || "Failed", "error"); sync(prev); }
   }, [services, sync, toast, router]);
 
-  /* ── DELETE ── */
   const handleDelete = useCallback(async (id: string) => {
     const prev = [...services];
     sync(services.filter((s) => s.id !== id));
@@ -110,7 +75,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
     else { toast(res.error || "Failed", "error"); sync(prev); }
   }, [services, sync, toast, router]);
 
-  /* ── DRAG & DROP REORDER ── */
   const handleDragStart = useCallback((idx: number) => setDragIdx(idx), []);
   const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
     e.preventDefault();
@@ -129,39 +93,65 @@ export default function ServicesList({ services: initial }: { services: DbServic
     else toast("Reorder failed", "error");
   }, [services, toast, router]);
 
-  /* ── AUTO-EDIT STATE ── */
-  const [editIcon, setEditIcon] = useState("");
-  const [editName, setEditName] = useState("");
-  const [editDesc, setEditDesc] = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [editActive, setEditActive] = useState(true);
-  const editTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editDefaults = {
+    icon: "",
+    name: "",
+    description: "",
+    category: "",
+    active: true,
+  };
+  const { values: editVals, setValue: setEditVal, clearDraft: clearEditDraft } = useDraft(
+    editingId ? "service:" + editingId : "service:_none",
+    editDefaults
+  );
 
   const startEdit = useCallback((s: DbService) => {
     setEditingId(s.id);
-    setEditIcon(s.icon);
-    setEditName(s.name);
-    setEditDesc(s.description);
-    setEditCategory(s.category || "");
-    setEditActive(s.active !== false);
-  }, []);
+    setEditVal("icon", s.icon);
+    setEditVal("name", s.name);
+    setEditVal("description", s.description);
+    setEditVal("category", s.category || "");
+    setEditVal("active", s.active !== false);
+  }, [setEditVal]);
 
-  useEffect(() => {
+  const applyEdit = useCallback(async () => {
     if (!editingId) return;
-    if (editTimerRef.current) clearTimeout(editTimerRef.current);
-    editTimerRef.current = setTimeout(() => {
-      const fd = new FormData();
-      fd.append("icon", editIcon);
-      fd.append("name", editName);
-      fd.append("description", editDesc);
-      fd.append("category", editCategory);
-      fd.append("active", String(editActive));
-      handleUpdate(editingId, fd);
-    }, 1200);
-    return () => { if (editTimerRef.current) clearTimeout(editTimerRef.current); };
-  }, [editIcon, editName, editDesc, editCategory, editActive, editingId]);
+    const fd = new FormData();
+    fd.append("icon", String(editVals.icon));
+    fd.append("name", String(editVals.name));
+    fd.append("description", String(editVals.description));
+    fd.append("category", String(editVals.category));
+    fd.append("active", String(editVals.active));
+    const prev = [...services];
+    const idx = services.findIndex((s) => s.id === editingId);
+    if (idx === -1) return;
+    const patched = [...services];
+    patched[idx] = {
+      ...patched[idx],
+      icon: String(editVals.icon),
+      name: String(editVals.name),
+      description: String(editVals.description),
+      category: String(editVals.category),
+      active: !!editVals.active,
+    };
+    sync(patched);
+    setEditingId(null);
+    const res = await updateService(editingId, fd);
+    if (res.success) {
+      clearEditDraft();
+      toast("Service updated");
+      router.refresh();
+    } else {
+      toast(res.error || "Failed", "error");
+      sync(prev);
+    }
+  }, [editingId, editVals, services, sync, clearEditDraft, toast, router]);
 
-  /* ── CREATE FORM STATE ── */
+  const cancelEdit = useCallback(() => {
+    setEditingId(null);
+    clearEditDraft();
+  }, [clearEditDraft]);
+
   const [cIcon, setcIcon] = useState("bi-stars");
   const [cName, setcName] = useState("");
   const [cDesc, setcDesc] = useState("");
@@ -183,6 +173,7 @@ export default function ServicesList({ services: initial }: { services: DbServic
     label: "What I Do",
     title: "Capabilities",
     cards: services.filter((s) => s.active).map((s) => ({
+      id: s.id,
       icon: s.icon,
       name: s.name,
       desc: s.description,
@@ -193,7 +184,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
 
   return (
     <div className="dash-content" style={{ padding: "2rem" }}>
-      {/* HEADER */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: ".75rem" }}>
         <div className="dash-section-title" style={{ margin: 0, border: 0, padding: 0 }}>
           Services ({counts.active} active / {counts.all} total)
@@ -208,7 +198,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
         </div>
       </div>
 
-      {/* LIVE PREVIEW */}
       {showPreview && (
         <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
           <div className="dash-section-title">Live Preview</div>
@@ -218,7 +207,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
         </div>
       )}
 
-      {/* SEARCH + FILTER */}
       <div style={{ display: "flex", gap: ".75rem", marginBottom: "1.5rem", flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ position: "relative", flex: "1 1 200px" }}>
           <i className="bi bi-search" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", fontSize: ".75rem" }} />
@@ -235,11 +223,10 @@ export default function ServicesList({ services: initial }: { services: DbServic
         </div>
       </div>
 
-      {/* CREATE FORM */}
       {showCreate && (
         <div style={{ marginBottom: "1.5rem", border: "1px solid var(--accent)", borderRadius: 12, padding: "1.5rem", background: "rgba(108,99,255,.05)" }}>
           <div className="dash-section-title">New Service</div>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "1rem", marginTop: "1rem", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gap: "1rem", marginTop: "1rem", alignItems: "start" }} className="dash-service-create-grid">
             <IconPicker value={cIcon} onChange={setcIcon} />
             <div className="dash-field">
               <label>Title</label>
@@ -263,7 +250,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
         </div>
       )}
 
-      {/* SERVICE CARDS */}
       <div style={{ display: "flex", flexDirection: "column", gap: ".6rem" }}>
         {filtered.map((s, idx) => (
           <div key={s.id} draggable onDragStart={() => handleDragStart(idx)} onDragOver={(e) => handleDragOver(e, idx)} onDragEnd={handleDragEnd}
@@ -276,28 +262,29 @@ export default function ServicesList({ services: initial }: { services: DbServic
 
             {editingId === s.id ? (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: ".6rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr 1fr", gap: ".75rem", alignItems: "start" }}>
-                  <IconPicker value={editIcon} onChange={setEditIcon} />
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr 1fr", gap: ".75rem", alignItems: "start" }} className="dash-service-edit-grid">
+                  <IconPicker value={String(editVals.icon)} onChange={(v) => setEditVal("icon", v)} />
                   <div className="dash-field">
                     <label>Title</label>
-                    <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                    <input value={String(editVals.name)} onChange={(e) => setEditVal("name", e.target.value)} />
                   </div>
                   <div className="dash-field">
                     <label>Category</label>
-                    <input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} />
+                    <input value={String(editVals.category)} onChange={(e) => setEditVal("category", e.target.value)} />
                   </div>
                   <div className="dash-field">
                     <label>Description</label>
-                    <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+                    <input value={String(editVals.description)} onChange={(e) => setEditVal("description", e.target.value)} />
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: ".4rem", cursor: "pointer", fontFamily: "'Space Mono', monospace", fontSize: ".55rem", color: "var(--text-muted)", letterSpacing: ".1em", textTransform: "uppercase" }}>
-                    <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} style={{ accentColor: "var(--accent)" }} /> Active
+                    <input type="checkbox" checked={!!editVals.active} onChange={(e) => setEditVal("active", e.target.checked)} style={{ accentColor: "var(--accent)" }} /> Active
                   </label>
-                  <span style={{ fontFamily: "'Space Mono', monospace", fontSize: ".55rem", color: "var(--accent2)", letterSpacing: ".1em" }}>
-                    <i className="bi bi-clock-history" /> Autosaving...
-                  </span>
+                  <button className="dash-btn dash-btn-save dash-btn-sm" onClick={applyEdit} data-shortcut="save">
+                    <i className="bi bi-check-lg" /> Apply
+                  </button>
+                  <button className="dash-btn dash-btn-danger dash-btn-sm" onClick={cancelEdit}>Cancel</button>
                 </div>
               </div>
             ) : (
@@ -359,7 +346,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
         </div>
       )}
 
-      {/* VERSION HISTORY PANEL */}
       {historyId && (() => {
         const svc = services.find((s) => s.id === historyId);
         if (!svc) return null;
@@ -378,7 +364,6 @@ export default function ServicesList({ services: initial }: { services: DbServic
         );
       })()}
 
-      {/* DELETE CONFIRMATION DIALOG */}
       {deletingId && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}
           onClick={() => setDeletingId(null)}>

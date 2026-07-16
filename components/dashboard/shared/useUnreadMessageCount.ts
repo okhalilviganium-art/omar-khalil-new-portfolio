@@ -18,7 +18,8 @@ export function useUnreadMessageCount() {
   }, []);
 
   useEffect(() => {
-    fetchCount();
+    const id = requestAnimationFrame(() => { fetchCount(); });
+    return () => cancelAnimationFrame(id);
   }, [fetchCount]);
 
   useEffect(() => {

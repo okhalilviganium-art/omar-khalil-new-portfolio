@@ -15,10 +15,10 @@
   --danger:     #ff6b6b;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: var(--bg-deep); color: var(--text); font-family: 'Outfit', sans-serif; overflow: hidden; }
+html, body { height: 100%; background: var(--bg-deep); color: var(--text); font-family: 'Outfit', sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 
 /* Layout */
-.dash-layout { display: flex; height: 100vh; }
+.dash-layout { display: flex; height: 100vh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 
 /* Sidebar */
 .dash-sidebar {
@@ -111,6 +111,17 @@ html, body { height: 100%; background: var(--bg-deep); color: var(--text); font-
 .dash-content::-webkit-scrollbar { width: 6px; }
 .dash-content::-webkit-scrollbar-track { background: var(--bg-dark); }
 .dash-content::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+/* Responsive content padding — inline `padding: "2rem"` is overridden by this */
+@media (max-width: 900px) {
+  .dash-content { padding: 1.25rem !important; }
+}
+@media (max-width: 768px) {
+  .dash-content { padding: 1rem !important; }
+}
+@media (max-width: 480px) {
+  .dash-content { padding: .75rem !important; }
+}
 
 /* Form Groups */
 .dash-section { margin-bottom: 2.5rem; }
@@ -270,9 +281,27 @@ html, body { height: 100%; background: var(--bg-deep); color: var(--text); font-
 }
 .dash-toast.show { opacity: 1; transform: translateY(0); }
 
+/* Overview grids */
+.dash-overview-sidebar { display: grid; grid-template-columns: 1fr 280px; }
+.dash-overview-triple { display: grid; grid-template-columns: 1fr 1fr 280px; }
+
+/* Service form grids */
+.dash-service-create-grid { display: grid; grid-template-columns: auto 1fr 1fr; }
+.dash-service-edit-grid { display: grid; grid-template-columns: auto 1fr 1fr 1fr; }
+
 /* Responsive */
+@media (max-width: 1100px) {
+  .dash-grid-3 { grid-template-columns: 1fr 1fr; }
+  .dash-overview-triple { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 900px) {
-  .dash-sidebar { width: 60px; min-width: 60px; }
+  .dash-sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 60px; min-width: 60px; z-index: 9800;
+    transform: translateX(-100%);
+    transition: transform .3s cubic-bezier(.23,1,.32,1);
+  }
+  .dash-sidebar.open { transform: translateX(0); }
   .dash-logo-text, .dash-nav-item span, .dash-view-site span, .dash-reset-btn span { display: none; }
   .dash-nav-item { justify-content: center; padding: .7rem; }
   .dash-nav-item i { margin: 0; }
@@ -282,6 +311,27 @@ html, body { height: 100%; background: var(--bg-deep); color: var(--text); font-
   .msg-table { font-size: .75rem; }
   .msg-table th:nth-child(5), .msg-table td:nth-child(5) { display: none; }
   .msg-drawer { width: 100%; }
+
+  .dash-grid-2 { grid-template-columns: 1fr; }
+  .dash-grid-3 { grid-template-columns: 1fr; }
+  .dash-overview-sidebar { grid-template-columns: 1fr; }
+  .dash-overview-triple { grid-template-columns: 1fr; }
+  .dash-service-create-grid { grid-template-columns: 1fr; }
+  .dash-service-edit-grid { grid-template-columns: 1fr; }
+  .msg-stats { grid-template-columns: repeat(2, 1fr); }
+  .dash-header { padding: 1rem 1.25rem; flex-wrap: wrap; gap: .5rem; }
+}
+@media (max-width: 768px) {
+  .msg-stats { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
+  .msg-filter-bar { gap: .5rem; }
+  .msg-search { min-width: 150px; }
+  .msg-drawer-meta { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .msg-stats { grid-template-columns: 1fr; }
+  .msg-filter-btn { padding: .35rem .7rem; font-size: .5rem; }
+  .dash-header { padding: .75rem 1rem; }
+  .dash-header-title { font-size: 1.2rem; }
 }
 
 /* ============================
@@ -356,9 +406,10 @@ html, body { height: 100%; background: var(--bg-deep); color: var(--text); font-
 .msg-table-wrap {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: 10px; overflow: hidden;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
 .msg-table {
-  width: 100%; border-collapse: collapse;
+  width: 100%; min-width: 600px; border-collapse: collapse;
 }
 .msg-table thead th {
   padding: .8rem 1rem;

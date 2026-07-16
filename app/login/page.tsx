@@ -35,11 +35,12 @@ export default function LoginPage() {
         style={{
           width: "100%",
           maxWidth: 400,
-          padding: "2.5rem",
+          padding: "clamp(1.5rem, 5vw, 2.5rem)",
           background: "rgba(255,255,255,0.03)",
           border: "1px solid rgba(108,99,255,0.15)",
           borderRadius: 16,
           boxShadow: "0 0 60px rgba(108,99,255,0.08)",
+          margin: "0 1rem",
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>

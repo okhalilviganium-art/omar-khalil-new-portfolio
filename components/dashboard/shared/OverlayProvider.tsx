@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "./ToastProvider";
 import { globalSearch, type SearchResult } from "@/lib/actions/search";
 
 interface Command {
@@ -35,7 +34,6 @@ export function useOverlay() {
 
 export function OverlayProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { toast } = useToast();
   const [showSearch, setShowSearch] = useState(false);
   const [showCommands, setShowCommands] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -105,7 +103,7 @@ export function OverlayProvider({ children }: { children: React.ReactNode }) {
   }, [showSearch, showCommands, closeAll, openSearch]);
 
   useEffect(() => {
-    if (!searchQuery || searchQuery.length < 2) { setSearchResults([]); return; }
+    if (!searchQuery || searchQuery.length < 2) { const id = requestAnimationFrame(() => { setSearchResults([]); }); return () => cancelAnimationFrame(id); }
     const timer = setTimeout(async () => {
       setSearchLoading(true);
       try {

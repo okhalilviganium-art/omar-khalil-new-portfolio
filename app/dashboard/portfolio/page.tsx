@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getProjectsRaw } from "@/lib/actions/projects";
+import { getProjectsRaw } from "@/lib/actions/portfolio";
 import PortfolioList from "@/components/dashboard/portfolio/PortfolioList";
 import PortfolioLoading from "./loading";
 

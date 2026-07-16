@@ -23,9 +23,48 @@ const spaceMono = Space_Mono({
   variable: "--font-space-mono",
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://omarkhalil.dev";
+
 export const metadata: Metadata = {
-  title: "Omar Khalil - MULTIMEDIA DESIGNER",
-  description: "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+  title: {
+    default: "Omar Khalil — Multimedia Designer",
+    template: "%s — Omar Khalil",
+  },
+  description:
+    "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    siteName: "Omar Khalil",
+    title: "Omar Khalil — Multimedia Designer",
+    description:
+      "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Omar Khalil — Multimedia Designer",
+    description:
+      "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+};
+
+export const viewport = "width=device-width, initial-scale=1, viewport-fit=cover";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Omar Khalil",
+  jobTitle: "Multimedia Designer",
+  description:
+    "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+  url: siteUrl,
+  sameAs: [],
 };
 
 export default function RootLayout({
@@ -40,8 +79,17 @@ export default function RootLayout({
         <link href="/font/bootstrap-icons.css" rel="stylesheet" />
         <link href="/css/all.min.css" rel="stylesheet" />
         <link href="/css/style.css" rel="stylesheet" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
-      <body>{children}</body>
+      <body>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

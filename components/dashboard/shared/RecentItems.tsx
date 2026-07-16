@@ -58,7 +58,7 @@ function entityIcon(type: string): string {
 export default function RecentItems() {
   const [items, setItems] = useState<RecentItem[]>([]);
 
-  useEffect(() => { setItems(getRecentItems()); }, []);
+  useEffect(() => { const id = requestAnimationFrame(() => { setItems(getRecentItems()); }); return () => cancelAnimationFrame(id); }, []);
 
   if (items.length === 0) return null;
 

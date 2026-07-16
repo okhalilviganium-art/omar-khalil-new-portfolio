@@ -32,11 +32,17 @@ export default function MessagesList({ messages: initial }: { messages: Message[
   useEffect(() => {
     if (!drawer) return;
     const updated = messages.find((m) => m.id === drawer.id);
-    if (updated) setDrawer(updated);
-    else setDrawer(null);
+    const id = requestAnimationFrame(() => {
+      if (updated) setDrawer(updated);
+      else setDrawer(null);
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages, drawer]);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => { setMounted(true); });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const filtered = messages.filter((m) => {
     if (filter !== "all" && m.status !== filter) return false;

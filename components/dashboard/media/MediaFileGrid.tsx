@@ -10,8 +10,6 @@ interface Props {
   usageCounts: Record<string, number>;
 }
 
-const IMAGE_MIMES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml", "image/bmp", "image/ico"];
-
 function isImage(mime: string) { return mime.startsWith("image/"); }
 function isVideo(mime: string) { return mime.startsWith("video/"); }
 function fileIcon(mime: string) {

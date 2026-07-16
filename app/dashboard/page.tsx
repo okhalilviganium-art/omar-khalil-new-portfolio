@@ -42,12 +42,7 @@ export default function DashboardPage() {
           <StatCards />
         </Suspense>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "1.5rem",
-          alignItems: "start",
-        }}>
+        <div className="dash-grid-2" style={{ gap: "1.5rem", alignItems: "start" }}>
           <Suspense fallback={<RecentMessagesSkeleton />}>
             <RecentMessages />
           </Suspense>
@@ -56,24 +51,14 @@ export default function DashboardPage() {
           </Suspense>
         </div>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 280px",
-          gap: "1.5rem",
-          alignItems: "start",
-        }}>
+        <div className="dash-overview-sidebar" style={{ gap: "1.5rem", alignItems: "start" }}>
           <Suspense fallback={<StorageSkeleton />}>
             <StorageCard />
           </Suspense>
           <QuickActions />
         </div>
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 280px",
-          gap: "1.5rem",
-          alignItems: "start",
-        }}>
+        <div className="dash-overview-triple" style={{ gap: "1.5rem", alignItems: "start" }}>
           <ActivityTimeline limit={15} />
           <RecentItems />
           <FavoritesPanel />

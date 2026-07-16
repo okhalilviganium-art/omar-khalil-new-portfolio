@@ -1,21 +1,9 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "./activity";
 import { createVersion } from "./versions";
-import type { DbService } from "@/types/supabase";
-
-export async function getServices(): Promise<DbService[]> {
-  const s = await createClient();
-  const { data, error } = await s
-    .from("services")
-    .select("*")
-    .order("sort_order", { ascending: true });
-  if (error) throw error;
-  return data as DbService[];
-}
 
 export async function createService(fd: FormData) {
   const s = createAdminClient();

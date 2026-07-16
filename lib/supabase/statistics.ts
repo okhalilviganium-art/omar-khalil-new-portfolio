@@ -1,9 +1,9 @@
-import { createClient } from "./client";
+import { createAdminClient } from "./admin";
 import type { DbStatistic } from "@/types/supabase";
 import type { StatCard, SkillBar } from "@/types";
 
 export async function getStatCards(): Promise<StatCard[]> {
-  const s = createClient();
+  const s = createAdminClient();
   const { data, error } = await s
     .from("statistics")
     .select("*")
@@ -17,7 +17,7 @@ export async function getStatCards(): Promise<StatCard[]> {
 }
 
 export async function getSkillBars(): Promise<SkillBar[]> {
-  const s = createClient();
+  const s = createAdminClient();
   const { data, error } = await s
     .from("statistics")
     .select("*")
@@ -31,7 +31,7 @@ export async function getSkillBars(): Promise<SkillBar[]> {
 }
 
 export async function getStatisticsRaw(): Promise<DbStatistic[]> {
-  const s = createClient();
+  const s = createAdminClient();
   const { data, error } = await s
     .from("statistics")
     .select("*")
@@ -44,7 +44,7 @@ export async function syncStatistics(
   cards: StatCard[],
   bars: SkillBar[]
 ): Promise<void> {
-  const s = createClient();
+  const s = createAdminClient();
   const rows: Partial<DbStatistic>[] = [
     ...cards.map((c, i) => ({
       stat_type: "card" as const,

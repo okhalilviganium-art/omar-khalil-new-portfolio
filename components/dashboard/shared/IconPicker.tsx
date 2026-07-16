@@ -16,7 +16,7 @@ const ICONS = [
   "bi-shield", "bi-lock", "bi-key", "bi-person-check",
   "bi-cloud", "bi-cloud-upload", "bi-database", "bi-server", "bi-hdd-network",
   "bi-geo-alt", "bi-compass", "bi-signpost", "bi-map",
-  "bi-trophy", "bi-award", "bi-patch-check", "bi-stars", "bi-fire",
+  "bi-trophy", "bi-award", "bi-patch-check", "bi-fire",
   "bi-heart", "bi-hand-thumbs-up", "bi-emoji-smile", "bi-star",
   "bi-cube", "bi-boxes", "bi-diagram-3", "bi-bezier", "bi-node-hml",
   "bi-paint-bucket", "bi-paintRoller", "bi-eraser", "bi-scissors", "bi-crop",
@@ -90,7 +90,7 @@ export default function IconPicker({ value, onChange }: IconPickerProps) {
               borderRadius: 6, color: "var(--text)", fontFamily: "'Outfit', sans-serif", fontSize: ".8rem",
               outline: "none", marginBottom: ".5rem",
             }} />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(36px, 1fr))", gap: 4 }}>
             {filtered.map((ic) => (
               <button key={ic} type="button"
                 onClick={() => { onChange(ic); setOpen(false); setSearch(""); }}

@@ -1,52 +1,85 @@
 "use client";
 
+import Link from "next/link";
 import type { Project } from "@/types";
 
 interface PortfolioProps {
   projects: Project[];
-  onOpenModal: (project: Project) => void;
 }
 
-export default function Portfolio({ projects, onOpenModal }: PortfolioProps) {
+export default function Portfolio({ projects }: PortfolioProps) {
+  const displayProjects = projects.slice(0, 6);
+
   return (
-    <section className="section" id="sec-2">
+    <section className="section" id="sec-2" aria-label="Portfolio">
       <div className="section-content work-wrap">
         <div className="section-label">Portfolio</div>
         <div className="section-title">Selected Work</div>
-        <div className="projects-grid" id="dyn-projects">
-          {projects.map((p) => {
-            const tagsArr = (p.tags || "").split(",");
-            const overlayTag =
-              p.overlayTag ||
-              (tagsArr[0] || "").trim() +
-                (tagsArr[1] ? " \u00b7 " + tagsArr[1].trim() : "");
+        {displayProjects.length > 0 ? (
+          <div className="projects-grid" id="dyn-projects">
+            {displayProjects.map((p) => {
+              const categoryLabel = p.categories?.length
+                ? p.categories[0].name
+                : p.category || "";
+              const thumbSrc = p.img || "/images/placeholder.jpg";
 
-            return (
-              <div
-                key={p.id}
-                className="project-card"
-                data-title={p.title}
-                data-img={p.img}
-                data-tags={p.tags}
-                data-desc={p.desc}
-                data-role={p.role}
-                data-year={p.year}
-                data-stack={p.stack}
-                data-live={p.live}
-                onClick={() => onOpenModal(p)}
-              >
-                <img src={p.img || "/images/placeholder.jpg"} alt={p.title} />
-                <div className="project-overlay">
-                  <div className="project-tag">{overlayTag}</div>
-                  <div className="project-name">{p.title}</div>
-                  <span className="project-link">
-                    <i className="bi bi-arrow-up-right" /> View Details
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <Link
+                  key={p.id}
+                  href={p.slug ? `/work/${p.slug}` : "#"}
+                  className="project-card"
+                  aria-label={`${p.title} — ${categoryLabel}`}
+                >
+                  <img
+                    src={thumbSrc}
+                    alt={p.title}
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src =
+                        "/images/placeholder.jpg";
+                    }}
+                  />
+                  <div className="project-overlay">
+                    {categoryLabel && (
+                      <div className="project-tag">{categoryLabel}</div>
+                    )}
+                    <div className="project-name">{p.title}</div>
+                    <div className="project-meta">
+                      {p.year && <span className="project-year">{p.year}</span>}
+                      {p.shortDescription && (
+                        <span className="project-desc">
+                          {p.shortDescription.length > 80
+                            ? p.shortDescription.slice(0, 80) + "..."
+                            : p.shortDescription}
+                        </span>
+                      )}
+                    </div>
+                    <span className="project-link">
+                      <i className="bi bi-arrow-up-right" aria-hidden="true" /> Preview
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-state-icon">
+              <i className="bi bi-grid" />
+            </div>
+            <div className="empty-state-title">No Projects Yet</div>
+            <p className="empty-state-desc">
+              Add and publish projects from the dashboard to showcase your work here.
+            </p>
+          </div>
+        )}
+        {displayProjects.length > 0 && (
+          <div className="view-all-wrap">
+            <Link href="/work" className="btn-outline-glow">
+              View All Selected Works <i className="bi bi-arrow-right" aria-hidden="true" />
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

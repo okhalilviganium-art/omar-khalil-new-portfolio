@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUser } from "@/lib/supabase/auth";
@@ -72,11 +72,11 @@ export async function restoreFromBin(
     const bin = item as DbRecycleBin;
 
     if (bin.entity_type === "project") {
-      const { id, created_at, ...rest } = bin.snapshot as Record<string, unknown>;
-      await s.from("projects").upsert({ ...rest, id: bin.entity_id, published: true }, { onConflict: "id" });
+      const { id: _id, created_at: _ca, ...rest } = bin.snapshot as Record<string, unknown>;
+      await s.from("projects").upsert({ ...rest, id: bin.entity_id, status: "published" }, { onConflict: "id" });
       revalidatePath("/dashboard/portfolio");
     } else if (bin.entity_type === "service") {
-      const { id, created_at, ...rest } = bin.snapshot as Record<string, unknown>;
+      const { id: _id, created_at: _ca, ...rest } = bin.snapshot as Record<string, unknown>;
       await s.from("services").upsert({ ...rest, id: bin.entity_id }, { onConflict: "id" });
       revalidatePath("/dashboard/services");
     }

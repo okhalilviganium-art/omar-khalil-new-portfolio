@@ -1,5 +1,5 @@
 import { getSettings } from "./site-settings";
-import { getProjects } from "./projects";
+import { getFeaturedProjects } from "./portfolio";
 import { getServices } from "./services";
 import { getStatCards, getSkillBars } from "./statistics";
 import { getSocials } from "./social-links";
@@ -20,7 +20,6 @@ const HOME_KEYS = [
 const ABOUT_KEYS = [
   "about_image", "about_image_media_id", "about_experience", "about_label",
   "about_title", "about_description", "about_skills", "about_tools",
-  "about_stat_years", "about_stat_projects", "about_stat_clients",
 ];
 
 const STATS_KEYS = ["stats_label", "stats_title"];
@@ -84,22 +83,15 @@ export async function loadSiteData(): Promise<SiteData> {
     return fallback || "";
   };
 
-  let projects: SiteData["projects"] = [];
+  const projects = await getFeaturedProjects(6);
+
   let serviceCards: SiteData["services"]["cards"] = [];
   let statCards: SiteData["stats"]["cards"] = [];
   let skillBars: SiteData["stats"]["bars"] = [];
   let socials: SiteData["contact"]["socials"] = [];
 
   try {
-    projects = await getProjects();
-    console.log("Projects:", projects.length);
-  } catch (e) {
-    console.error("Projects ERROR:", e);
-  }
-
-  try {
     serviceCards = await getServices();
-    console.log("Services:", serviceCards.length);
   } catch (e) {
     console.error("Services ERROR:", e);
   }
@@ -107,38 +99,18 @@ export async function loadSiteData(): Promise<SiteData> {
   try {
     statCards = await getStatCards();
     skillBars = await getSkillBars();
-    console.log("Stats:", statCards.length, skillBars.length);
   } catch (e) {
     console.error("Statistics ERROR:", e);
   }
 
+  console.log("Statistics statCards:", statCards.length, statCards);
+  console.log("Statistics skillBars:", skillBars.length, skillBars);
+
   try {
     socials = await getSocials();
-    console.log("Socials:", socials.length);
   } catch (e) {
     console.error("Socials ERROR:", e);
   }
-
-  const projectMediaIds = projects
-    .flatMap((p) => [p.coverMediaId, ...p.galleryMediaIds, p.videoMediaId])
-    .filter((id): id is string => Boolean(id));
-
-  if (projectMediaIds.length > 0) {
-    try {
-      const projectMediaMap = await getMediaByIdsAction(projectMediaIds);
-      Object.assign(mediaMap, projectMediaMap);
-    } catch (e) {
-      console.error("Project media ERROR:", e);
-    }
-  }
-
-  const resolveProjectMedia = (p: typeof projects[0]) => ({
-    ...p,
-    img: resolve(p.img, p.coverMediaId),
-    galleryImages: p.galleryMediaIds.map(
-      (mid, i) => mediaMap[mid] || p.galleryImages[i] || ""
-    ),
-  });
 
   console.log("========== loadSiteData END ==========");
 
@@ -186,15 +158,8 @@ export async function loadSiteData(): Promise<SiteData> {
       tools: settings.about_tools
         ? settings.about_tools.split(",")
         : [],
-      stats: [
-        { value: settings.about_stat_years || "", label: "Years Experience" },
-        { value: settings.about_stat_projects || "", label: "Projects Done" },
-        { value: settings.about_stat_clients || "", label: "Happy Clients" },
-      ],
     },
-    projects: projects
-      .filter((p) => p.published !== false)
-      .map(resolveProjectMedia),
+    projects: projects,
     stats: {
       label: settings.stats_label || "",
       title: settings.stats_title || "",

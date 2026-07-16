@@ -22,32 +22,73 @@ export interface DbMediaFolder {
 export interface DbProject {
   id: string;
   title: string;
+  slug: string;
   img: string;
   tags: string;
   description: string;
+  short_description: string;
+  full_description: string;
   role: string;
   year: string;
   stack: string;
   live: string;
   overlay_tag: string;
   overlay_name: string;
-  gallery_images: string;
-  featured: boolean;
-  github_url: string;
   sort_order: number;
   created_at: string;
-  slug: string;
+  updated_at: string | null;
   category: string;
-  client: string;
+  status: string;
+  featured: boolean;
   published: boolean;
-  gallery_media_ids: string[];
-  cover_media_id: string;
-  video_media_id: string;
+  client: string;
+  thumbnail_media_id: string;
+  cover_image_media_id: string;
+  gallery_media_ids: string[] | string;
+  technologies: string;
   seo_title: string;
   seo_description: string;
-  technologies: string;
   services_text: string;
+  cover_media_id: string;
+  video_media_id: string;
+  github_url: string;
   publish_status: string;
+}
+
+export interface DbCategory {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DbTechTag {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DbProjectGalleryItem {
+  id: string;
+  project_id: string;
+  media_type: "image" | "video";
+  media_id: string;
+  url: string;
+  caption: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface DbProjectLink {
+  id: string;
+  project_id: string;
+  title: string;
+  url: string;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface DbService {

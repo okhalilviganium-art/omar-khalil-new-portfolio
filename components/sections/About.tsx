@@ -5,11 +5,10 @@ interface AboutProps {
 }
 
 export default function About({ data }: AboutProps) {
-  const visibleStats = data.stats.filter((s) => s.value);
   const hasTools = data.tools && data.tools.length > 0;
 
   return (
-    <section className="section" id="sec-1">
+    <section className="section" id="sec-1" aria-label="About">
       <div className="section-content">
         <div className="about-grid">
           <div className="about-img-wrap">
@@ -53,16 +52,6 @@ export default function About({ data }: AboutProps) {
             )}
           </div>
         </div>
-        {visibleStats.length > 0 && (
-          <div className="stats-grid about-stats" id="dyn-about-stats">
-            {visibleStats.map((s, i) => (
-              <div className="stat-card" key={i}>
-                <div className="stat-num">{s.value}</div>
-                <div className="stat-label">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );

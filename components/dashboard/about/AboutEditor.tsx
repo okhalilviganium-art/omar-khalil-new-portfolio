@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import { useUnsavedChanges, UnsavedChangesPrompt } from "@/components/dashboard/shared/UnsavedChangesGuard";
@@ -10,6 +10,7 @@ import ImageUpload from "@/components/dashboard/shared/ImageUpload";
 import TagEditor from "@/components/dashboard/shared/TagEditor";
 import HistoryPanel from "@/components/dashboard/shared/HistoryPanel";
 import About from "@/components/sections/About";
+import { useDraft } from "@/hooks/useDraft";
 
 interface AboutEditorProps {
   siteSettings: Record<string, string>;
@@ -19,100 +20,81 @@ export default function AboutEditor({ siteSettings }: AboutEditorProps) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [label, setLabel] = useState(siteSettings["about_label"] || "");
-  const [title, setTitle] = useState(siteSettings["about_title"] || "");
-  const [description, setDescription] = useState(siteSettings["about_description"] || "");
-  const [image, setImage] = useState(siteSettings["about_image"] || "");
-  const [imageMediaId, setImageMediaId] = useState(siteSettings["about_image_media_id"] || "");
-  const [experience, setExperience] = useState(siteSettings["about_experience"] || "");
-  const [skills, setSkills] = useState<string[]>(
-    siteSettings["about_skills"] ? siteSettings["about_skills"].split(",") : []
-  );
-  const [tools, setTools] = useState<string[]>(
-    siteSettings["about_tools"] ? siteSettings["about_tools"].split(",") : []
-  );
-  const [statYears, setStatYears] = useState(siteSettings["about_stat_years"] || "");
-  const [statProjects, setStatProjects] = useState(siteSettings["about_stat_projects"] || "");
-  const [statClients, setStatClients] = useState(siteSettings["about_stat_clients"] || "");
-  const [statAwards, setStatAwards] = useState(siteSettings["about_stat_awards"] || "");
+  const defaults = {
+    about_label: siteSettings["about_label"] || "",
+    about_title: siteSettings["about_title"] || "",
+    about_description: siteSettings["about_description"] || "",
+    about_image: siteSettings["about_image"] || "",
+    about_image_media_id: siteSettings["about_image_media_id"] || "",
+    about_experience: siteSettings["about_experience"] || "",
+    about_skills: (siteSettings["about_skills"] ? siteSettings["about_skills"].split(",") : []) as string[],
+    about_tools: (siteSettings["about_tools"] ? siteSettings["about_tools"].split(",") : []) as string[],
+  };
 
+  const { values, setValue, clearDraft, hasDraft, isStale, restoreSnapshot } = useDraft("about", defaults);
   const [saving, setSaving] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const changedRef = useRef(false);
-  const { showPrompt, confirmNavigation, handleConfirm, handleCancel } = useUnsavedChanges(changedRef.current);
+  const { showPrompt, handleConfirm, handleCancel } = useUnsavedChanges(hasDraft);
+
+  const v = values;
 
   const doSave = useCallback(async () => {
     setSaving(true);
     const fd = new FormData();
-    fd.append("about_label", label);
-    fd.append("about_title", title);
-    fd.append("about_description", description);
-    fd.append("about_image", image);
-    fd.append("about_image_media_id", imageMediaId);
-    fd.append("about_experience", experience);
-    fd.append("about_skills", skills.join(","));
-    fd.append("about_tools", tools.join(","));
-    fd.append("about_stat_years", statYears);
-    fd.append("about_stat_projects", statProjects);
-    fd.append("about_stat_clients", statClients);
-    fd.append("about_stat_awards", statAwards);
+    fd.append("about_label", String(v.about_label));
+    fd.append("about_title", String(v.about_title));
+    fd.append("about_description", String(v.about_description));
+    fd.append("about_image", String(v.about_image));
+    fd.append("about_image_media_id", String(v.about_image_media_id));
+    fd.append("about_experience", String(v.about_experience));
+    fd.append("about_skills", (v.about_skills as string[]).join(","));
+    fd.append("about_tools", (v.about_tools as string[]).join(","));
     const res = await updateSiteSettings(fd);
     setSaving(false);
     if (res.success) {
+      clearDraft();
       toast("Saved");
       addRecentItem("about", "about", "About Settings", "/dashboard/about");
       router.refresh();
     } else {
       toast(res.error || "Save failed", "error");
     }
-  }, [label, title, description, image, imageMediaId, experience, skills, tools, statYears, statProjects, statClients, statAwards, toast, router]);
-
-  useEffect(() => {
-    changedRef.current = true;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      if (changedRef.current) {
-        changedRef.current = false;
-        doSave();
-      }
-    }, 1500);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [label, title, description, image, imageMediaId, experience, skills, tools, statYears, statProjects, statClients, statAwards, doSave]);
+  }, [v, clearDraft, toast, router]);
 
   const previewData = {
-    image: image || "/images/placeholder.jpg",
-    experience: experience || "9+ Years",
-    label: label || "Who I Am",
-    title: title || "About Title",
-    description: description || "Description goes here.",
-    skills,
-    tools,
-    stats: [
-      { value: statYears || "0", label: "Years Experience" },
-      { value: statProjects || "0", label: "Projects Done" },
-      { value: statClients || "0", label: "Happy Clients" },
-      { value: statAwards || "0", label: "Awards Won" },
-    ],
+    image: String(v.about_image) || "/images/placeholder.jpg",
+    experience: String(v.about_experience) || "9+ Years",
+    label: String(v.about_label) || "Who I Am",
+    title: String(v.about_title) || "About Title",
+    description: String(v.about_description) || "Description goes here.",
+    skills: v.about_skills as string[],
+    tools: v.about_tools as string[],
   };
 
   return (
     <div className="dash-content" style={{ padding: "2rem" }}>
       <UnsavedChangesPrompt show={showPrompt} onConfirm={handleConfirm} onCancel={handleCancel} />
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
+
+      {hasDraft && isStale && (
+        <div style={{ display: "flex", alignItems: "center", gap: ".5rem", padding: ".6rem 1rem", marginBottom: "1.5rem", borderRadius: 8, background: "rgba(255,183,77,.08)", border: "1px solid rgba(255,183,77,.25)", fontFamily: "'Space Mono',monospace", fontSize: ".65rem", letterSpacing: ".04em", color: "#ffb74d" }}>
+          <i className="bi bi-info-circle" />
+          The published version has changed since your last edit. Your draft is preserved.
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: ".75rem" }}>
         <div className="dash-section-title" style={{ margin: 0, border: 0, padding: 0 }}>
           About Section
         </div>
-        <div style={{
-          fontFamily: "'Space Mono', monospace", fontSize: ".6rem", letterSpacing: ".1em",
-          color: saving ? "var(--accent2)" : "var(--text-muted)",
+        <button className="dash-btn dash-btn-save" data-shortcut="save" onClick={doSave} disabled={saving} style={{
+          fontFamily: "'Space Mono', monospace", fontSize: ".65rem", letterSpacing: ".08em",
           display: "flex", alignItems: "center", gap: 6,
         }}>
           {saving ? (
             <><span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent2)", animation: "pulse 1s infinite" }} /> Saving...</>
           ) : (
-            <><i className="bi bi-check-lg" /> All changes saved</>
+            <><i className="bi bi-check-lg" /> Save</>
           )}
-        </div>
+        </button>
       </div>
 
       {/* GENERAL */}
@@ -121,18 +103,18 @@ export default function AboutEditor({ siteSettings }: AboutEditorProps) {
 
         <div className="dash-field" style={{ marginTop: "1rem" }}>
           <label>Section Label</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Who I Am" />
+          <input value={String(v.about_label)} onChange={(e) => setValue("about_label", e.target.value)} placeholder="e.g. Who I Am" />
         </div>
 
         <div className="dash-field" style={{ marginTop: "1rem" }}>
           <label>Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="HTML allowed — use &lt;span class=&quot;accent&quot;&gt; for accent" />
-          <span className="hint">HTML allowed — use &lt;span class="accent"&gt;text&lt;/span&gt; for accent color, &lt;br&gt; for line break</span>
+          <input value={String(v.about_title)} onChange={(e) => setValue("about_title", e.target.value)} placeholder="HTML allowed — use &lt;span class=&quot;accent&quot;&gt; for accent" />
+          <span className="hint">HTML allowed — use &lt;span class=&quot;accent&quot;&gt;text&lt;/span&gt; for accent color, &lt;br&gt; for line break</span>
         </div>
 
         <div className="dash-field" style={{ marginTop: "1rem" }}>
           <label>Description</label>
-          <textarea rows={6} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Full bio text..." />
+          <textarea rows={6} value={String(v.about_description)} onChange={(e) => setValue("about_description", e.target.value)} placeholder="Full bio text..." />
           <span className="hint">Use blank lines for paragraph breaks</span>
         </div>
       </div>
@@ -145,15 +127,15 @@ export default function AboutEditor({ siteSettings }: AboutEditorProps) {
           <ImageUpload
             name="about_image"
             label="Profile Image"
-            value={image}
+            value={String(v.about_image)}
             folder="about"
-            onUpload={(url, mediaId) => { setImage(url); setImageMediaId(mediaId); }}
+            onUpload={(url, mediaId) => { setValue("about_image", url); setValue("about_image_media_id", mediaId); }}
           />
         </div>
 
         <div className="dash-field" style={{ marginTop: "1rem" }}>
           <label>Years of Experience</label>
-          <input value={experience} onChange={(e) => setExperience(e.target.value)} placeholder="e.g. 9+ Years" />
+          <input value={String(v.about_experience)} onChange={(e) => setValue("about_experience", e.target.value)} placeholder="e.g. 9+ Years" />
         </div>
       </div>
 
@@ -161,7 +143,7 @@ export default function AboutEditor({ siteSettings }: AboutEditorProps) {
       <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
         <div className="dash-section-title">Skills</div>
         <div style={{ marginTop: "1rem" }}>
-          <TagEditor tags={skills} onChange={setSkills} placeholder="Add skill..." label="Skill Tags" />
+          <TagEditor tags={v.about_skills as string[]} onChange={(skills) => setValue("about_skills", skills)} placeholder="Add skill..." label="Skill Tags" />
         </div>
       </div>
 
@@ -169,30 +151,7 @@ export default function AboutEditor({ siteSettings }: AboutEditorProps) {
       <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
         <div className="dash-section-title">Tools</div>
         <div style={{ marginTop: "1rem" }}>
-          <TagEditor tags={tools} onChange={setTools} placeholder="Add tool..." label="Tool / Software" />
-        </div>
-      </div>
-
-      {/* STATISTICS */}
-      <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
-        <div className="dash-section-title">Statistics</div>
-        <div className="dash-grid dash-grid-4" style={{ marginTop: "1rem", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
-          <div className="dash-field">
-            <label>Years</label>
-            <input value={statYears} onChange={(e) => setStatYears(e.target.value)} placeholder="e.g. 9+" />
-          </div>
-          <div className="dash-field">
-            <label>Projects</label>
-            <input value={statProjects} onChange={(e) => setStatProjects(e.target.value)} placeholder="e.g. 87" />
-          </div>
-          <div className="dash-field">
-            <label>Clients</label>
-            <input value={statClients} onChange={(e) => setStatClients(e.target.value)} placeholder="e.g. 54" />
-          </div>
-          <div className="dash-field">
-            <label>Awards</label>
-            <input value={statAwards} onChange={(e) => setStatAwards(e.target.value)} placeholder="e.g. 12" />
-          </div>
+          <TagEditor tags={v.about_tools as string[]} onChange={(tools) => setValue("about_tools", tools)} placeholder="Add tool..." label="Tool / Software" />
         </div>
       </div>
 
@@ -208,7 +167,13 @@ export default function AboutEditor({ siteSettings }: AboutEditorProps) {
         </div>
       </div>
 
-      <HistoryPanel entityType="settings" entityId="global" currentSnapshot={siteSettings} onRestore={() => router.refresh()} />
+      <HistoryPanel
+        entityType="settings"
+        entityId="global"
+        currentSnapshot={values}
+        localOnly
+        onRestore={(snap) => restoreSnapshot(snap as typeof defaults)}
+      />
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
     </div>

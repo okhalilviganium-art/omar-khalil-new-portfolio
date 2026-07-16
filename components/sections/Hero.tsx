@@ -15,6 +15,7 @@ export default function Hero({ data, goTo }: HeroProps) {
     <section
       className="section active"
       id="sec-0"
+      aria-label="Hero"
       style={data.bg ? {
         backgroundImage: `url(${data.bg})`,
         backgroundSize: "cover",

@@ -42,7 +42,22 @@ export const portfolio: PortfolioDB = {
     const { count } = await s
       .from("projects")
       .select("*", { count: "exact", head: true });
-    const insertData = { ...row, sort_order: count || 0, publish_status: row.publish_status || "draft" };
+    const insertData = {
+      title: row.title || "Untitled",
+      img: row.img || "",
+      tags: row.tags || "",
+      description: row.description || "",
+      role: row.role || "",
+      year: row.year || "",
+      stack: row.stack || "",
+      live: row.live || "#",
+      overlay_tag: row.overlay_tag || "",
+      overlay_name: row.overlay_name || "",
+      category: row.category || "",
+      status: row.status || "published",
+      featured: row.featured || false,
+      sort_order: count || 0,
+    };
     const { data, error } = await s
       .from("projects")
       .insert(insertData)
@@ -89,9 +104,8 @@ export const portfolio: PortfolioDB = {
       .single();
     if (fetchErr || !binEntry) return { success: false, error: "Not found in recycle bin" };
     const snapshot = binEntry.snapshot as Record<string, unknown>;
-    delete snapshot.id;
-    delete snapshot.created_at;
-    const { error } = await s.from("projects").insert(snapshot);
+    const { id: _removedId, created_at: _removedCreatedAt, ...rest } = snapshot;
+    const { error } = await s.from("projects").insert(rest);
     if (error) return { success: false, error: error.message };
     await s.from("recycle_bin").delete().eq("id", binEntry.id);
     revalidatePath("/dashboard/portfolio");

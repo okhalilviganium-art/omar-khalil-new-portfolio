@@ -1,18 +1,21 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { DbStatistic } from "@/types/supabase";
 
 export async function getStatistics(): Promise<DbStatistic[]> {
-  const s = await createClient();
+  const s = createAdminClient();
   const { data, error } = await s
     .from("statistics")
     .select("*")
     .order("sort_order", { ascending: true });
-  if (error) throw error;
-  return data as DbStatistic[];
+  if (error) {
+    console.error("getStatistics ERROR:", error.message, error);
+    throw error;
+  }
+  console.log("getStatistics result:", data?.length, "rows", JSON.stringify(data));
+  return (data as DbStatistic[]) || [];
 }
 
 export async function createStatistic(formData: FormData) {
