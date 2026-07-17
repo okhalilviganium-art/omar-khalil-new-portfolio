@@ -18,7 +18,7 @@ function dbToProject(row: DbProject): Project {
     role: row.role, year: row.year, stack: row.stack, live: row.live,
     overlayTag: row.overlay_tag, overlayName: row.overlay_name,
     featured: row.featured, category: row.category || "",
-    categories: [], published: status !== "draft", publishStatus: status,
+    categories: [], published: status !== "draft", status,
     client: row.client || "", thumbnailMediaId: row.thumbnail_media_id || "",
     coverImageMediaId: row.cover_image_media_id || "",
     gallery: [], links: [], techStack: [],
@@ -57,7 +57,7 @@ export async function getProjectById(id: string): Promise<DbProject | null> {
 export async function createProject(formData: FormData) {
   const s = createAdminClient();
   const title = formData.get("title") as string || "Untitled";
-  const published = formData.get("published") !== "false";
+  const status = (formData.get("status") as string) || "published";
   const featured = formData.get("featured") === "true";
 
   const { count } = await s.from("projects").select("*", { count: "exact", head: true });
@@ -74,7 +74,7 @@ export async function createProject(formData: FormData) {
     overlay_tag: formData.get("overlay_tag") as string || "",
     overlay_name: formData.get("overlay_name") as string || "",
     category: formData.get("category") as string || "",
-    status: published ? "published" : "draft",
+    status: status,
     featured,
     sort_order: count || 0,
   };
@@ -95,8 +95,8 @@ export async function updateProject(id: string, formData: FormData) {
   const updates: Record<string, unknown> = {};
 
   const stringFields = [
-    "title", "img", "tags", "description", "role", "year", "stack",
-    "live", "overlay_tag", "overlay_name", "category",
+    "title", "slug", "img", "tags", "description", "role", "year", "stack",
+    "live", "overlay_tag", "overlay_name", "category", "status",
   ];
   for (const f of stringFields) {
     const val = formData.get(f);
@@ -105,14 +105,6 @@ export async function updateProject(id: string, formData: FormData) {
 
   const featuredVal = formData.get("featured");
   if (featuredVal !== null) updates.featured = featuredVal === "true";
-
-  const publishedVal = formData.get("published");
-  const statusVal = formData.get("status");
-  if (statusVal !== null) {
-    updates.status = statusVal as string;
-  } else if (publishedVal !== null) {
-    updates.status = publishedVal !== "false" ? "published" : "draft";
-  }
 
   if (Object.keys(updates).length === 0) return { success: true };
   const { error } = await s.from("projects").update(updates).eq("id", id);
@@ -129,28 +121,8 @@ export async function updateProject(id: string, formData: FormData) {
 
 export async function updateProjectField(id: string, field: string, value: unknown) {
   const s = createAdminClient();
-  const allowed = ["title", "category", "sort_order", "featured"];
+  const allowed = ["title", "category", "sort_order", "featured", "status"];
   if (!allowed.includes(field)) {
-    if (field === "published") {
-      const updates = { status: value ? "published" : "draft" };
-      const { error } = await s.from("projects").update(updates).eq("id", id);
-      if (error) return { success: false, error: error.message };
-      revalidatePath("/dashboard/portfolio");
-      revalidatePath("/dashboard");
-      revalidatePath("/");
-      revalidateTag("projects", "max");
-      return { success: true };
-    }
-    if (field === "publish_status") {
-      const updates = { status: value as string };
-      const { error } = await s.from("projects").update(updates).eq("id", id);
-      if (error) return { success: false, error: error.message };
-      revalidatePath("/dashboard/portfolio");
-      revalidatePath("/dashboard");
-      revalidatePath("/");
-      revalidateTag("projects", "max");
-      return { success: true };
-    }
     return { success: false, error: "Invalid field" };
   }
   const { error } = await s.from("projects").update({ [field]: value }).eq("id", id);

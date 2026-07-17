@@ -43,7 +43,7 @@ export default async function ProjectEditorPage({
     links: project.links || [],
     featured: project.featured || false,
     published: project.published !== false,
-    publishStatus: project.publishStatus || "published",
+    status: project.status || "published",
     orderIndex: project.orderIndex || 0,
     thumbnailMediaId: project.thumbnailMediaId || "",
     coverImageMediaId: project.coverImageMediaId || "",

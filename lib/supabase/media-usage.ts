@@ -39,16 +39,13 @@ export async function getMediaUsage(mediaId: string): Promise<MediaUsage> {
     }
   }
 
-  // Scan projects for cover_media_id, video_media_id, gallery_media_ids
+  // Scan projects for video_media_id, gallery_media_ids
   const { data: projects } = await s
     .from("projects")
-    .select("id, title, cover_media_id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
+    .select("id, title, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
   if (projects) {
     for (const row of projects) {
       const r = row as Record<string, unknown>;
-      if (r.cover_media_id === mediaId) {
-        usedIn.push({ type: "project", field: "cover_media_id", projectId: r.id as string, projectTitle: r.title as string });
-      }
       if (r.video_media_id === mediaId) {
         usedIn.push({ type: "project_video", field: "video_media_id", projectId: r.id as string, projectTitle: r.title as string });
       }
@@ -116,11 +113,10 @@ export async function findUnusedMedia(): Promise<string[]> {
   // projects
   const { data: projects } = await s
     .from("projects")
-    .select("id, cover_media_id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
+    .select("id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
   if (projects) {
     for (const row of projects) {
       const r = row as Record<string, unknown>;
-      if (r.cover_media_id) referencedIds.add(r.cover_media_id as string);
       if (r.video_media_id) referencedIds.add(r.video_media_id as string);
       if (r.thumbnail_media_id) referencedIds.add(r.thumbnail_media_id as string);
       if (r.cover_image_media_id) referencedIds.add(r.cover_image_media_id as string);
@@ -173,11 +169,10 @@ export async function findBrokenMediaReferences(): Promise<MediaUsageRef[]> {
   // projects
   const { data: projects } = await s
     .from("projects")
-    .select("id, title, cover_media_id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
+    .select("id, title, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
   if (projects) {
     for (const row of projects) {
       const r = row as Record<string, unknown>;
-      if (r.cover_media_id) refs.push({ id: r.cover_media_id as string, ref: { type: "project", field: "cover_media_id", projectId: r.id as string, projectTitle: r.title as string } });
       if (r.video_media_id) refs.push({ id: r.video_media_id as string, ref: { type: "project_video", field: "video_media_id", projectId: r.id as string, projectTitle: r.title as string } });
       if (r.thumbnail_media_id) refs.push({ id: r.thumbnail_media_id as string, ref: { type: "project", field: "thumbnail_media_id", projectId: r.id as string, projectTitle: r.title as string } });
       if (r.cover_image_media_id) refs.push({ id: r.cover_image_media_id as string, ref: { type: "project", field: "cover_image_media_id", projectId: r.id as string, projectTitle: r.title as string } });

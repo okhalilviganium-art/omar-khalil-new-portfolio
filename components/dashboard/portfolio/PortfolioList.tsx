@@ -96,7 +96,7 @@ export default function PortfolioList({ projects: initial }: Props) {
       const newStatus = isPublished(proj) ? "draft" : "published";
       setTogglingId(id);
       setProjects((prev) => prev.map((p) => p.id === id ? { ...p, status: newStatus } : p));
-      const res = await updateProjectField(id, "published", newStatus !== "draft");
+      const res = await updateProjectField(id, "status", newStatus);
       setTogglingId(null);
       if (res.success) {
         toast(`Published ${newStatus !== "draft" ? "on" : "off"}`);

@@ -61,7 +61,7 @@ function dbToProject(
   gallery: ProjectGalleryItem[] = [],
   links: ProjectLink[] = []
 ): Project {
-  const status = row.status || row.publish_status || "published";
+  const status = row.status || "published";
   return {
     id: row.id,
     title: row.title,
@@ -81,9 +81,9 @@ function dbToProject(
     categories,
     featured: row.featured || false,
     published: status !== "draft",
-    publishStatus: status,
+    status,
     client: row.client || "",
-    thumbnailMediaId: row.thumbnail_media_id || row.cover_media_id || "",
+    thumbnailMediaId: row.thumbnail_media_id || "",
     coverImageMediaId: row.cover_image_media_id || "",
     gallery,
     links,
@@ -147,7 +147,7 @@ export async function getProjectsFull(): Promise<Project[]> {
   }
 
   const thumbnailMediaIds = rows
-    .map((r) => r.thumbnail_media_id || r.cover_media_id || "")
+    .map((r) => r.thumbnail_media_id || "")
     .filter((id): id is string => Boolean(id));
 
   const galleryMediaIds: string[] = [];
@@ -194,7 +194,7 @@ export async function getProjectsFull(): Promise<Project[]> {
     );
 
     if (!project.img) {
-      const mediaId = (row as DbProject).thumbnail_media_id || (row as DbProject).cover_media_id || "";
+      const mediaId = (row as DbProject).thumbnail_media_id || "";
       if (mediaId) {
         const media = mediaMap.get(mediaId);
         if (media?.public_url) {

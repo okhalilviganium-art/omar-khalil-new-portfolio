@@ -64,7 +64,7 @@ function dbToProject(row: DbProject): Project {
     role: row.role, year: row.year, stack: row.stack, live: row.live,
     overlayTag: row.overlay_tag, overlayName: row.overlay_name,
     featured: row.featured, category: row.category || "",
-    categories: [], published: status !== "draft", publishStatus: status,
+    categories: [], published: status !== "draft", status,
     client: row.client || "", thumbnailMediaId: row.thumbnail_media_id || "",
     coverImageMediaId: row.cover_image_media_id || "",
     gallery: [], links: [], techStack: [],
@@ -87,7 +87,7 @@ function projectToDb(p: Project) {
     overlay_tag: p.overlayTag || "",
     overlay_name: p.overlayName || "",
     category: p.category || "",
-    status: p.publishStatus || (p.published !== false ? "published" : "draft"),
+    status: p.status || (p.published !== false ? "published" : "draft"),
     featured: p.featured || false,
     sort_order: 0,
   };

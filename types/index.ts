@@ -42,7 +42,7 @@ export interface Project {
   categories: ProjectCategory[];
   featured: boolean;
   published: boolean;
-  publishStatus: string;
+  status: string;
   client: string;
   thumbnailMediaId: string;
   coverImageMediaId: string;

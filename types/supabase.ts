@@ -16,7 +16,7 @@ export interface DbMediaFolder {
   id: string;
   name: string;
   path: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface DbProject {
@@ -40,19 +40,12 @@ export interface DbProject {
   category: string;
   status: string;
   featured: boolean;
-  published: boolean;
   client: string;
   thumbnail_media_id: string;
   cover_image_media_id: string;
   gallery_media_ids: string[] | string;
-  technologies: string;
-  seo_title: string;
-  seo_description: string;
-  services_text: string;
-  cover_media_id: string;
   video_media_id: string;
   github_url: string;
-  publish_status: string;
 }
 
 export interface DbCategory {

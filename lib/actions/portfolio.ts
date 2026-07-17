@@ -91,7 +91,7 @@ export async function getAllProjectTechTags() {
 export async function createProject(formData: FormData) {
   const s = createAdminClient();
   const title = (formData.get("title") as string) || "Untitled";
-  const published = formData.get("published") !== "false";
+  const status = (formData.get("status") as string) || "published";
   const featured = formData.get("featured") === "true";
   const slug = (formData.get("slug") as string) || slugify(title);
   const year = (formData.get("year") as string) || new Date().getFullYear().toString();
@@ -116,7 +116,7 @@ export async function createProject(formData: FormData) {
     overlay_tag: (formData.get("tags") as string)?.split(",").slice(0, 2).join(" · ") || "",
     overlay_name: title,
     category: (formData.get("category") as string) || "",
-    status: published ? "published" : "draft",
+    status: status,
     featured,
     sort_order: count || 0,
     thumbnail_media_id: (formData.get("thumbnail_media_id") as string) || "",
@@ -164,7 +164,7 @@ export async function updateProject(id: string, formData: FormData) {
   const stringFields = [
     "title", "slug", "short_description", "full_description",
     "client", "year", "role", "img", "tags", "stack", "live",
-    "overlay_tag", "overlay_name", "category",
+    "overlay_tag", "overlay_name", "category", "status",
     "thumbnail_media_id", "cover_image_media_id",
   ];
   for (const f of stringFields) {
@@ -177,14 +177,6 @@ export async function updateProject(id: string, formData: FormData) {
 
   const featuredVal = formData.get("featured");
   if (featuredVal !== null) updates.featured = featuredVal === "true";
-
-  const publishedVal = formData.get("published");
-  const statusVal = formData.get("status");
-  if (statusVal !== null) {
-    updates.status = statusVal as string;
-  } else if (publishedVal !== null) {
-    updates.status = publishedVal !== "false" ? "published" : "draft";
-  }
 
   const sortVal = formData.get("sort_order");
   if (sortVal !== null) updates.sort_order = parseInt(sortVal as string, 10) || 0;
@@ -248,23 +240,7 @@ export async function updateProjectField(
   value: unknown
 ) {
   const s = createAdminClient();
-  const allowed = ["title", "category", "sort_order", "featured"];
-
-  if (field === "published") {
-    const updates = { status: value ? "published" : "draft" };
-    const { error } = await s.from("projects").update(updates).eq("id", id);
-    if (error) return { success: false, error: error.message };
-    revalidatePortfolio();
-    return { success: true };
-  }
-
-  if (field === "publish_status") {
-    const updates = { status: value as string };
-    const { error } = await s.from("projects").update(updates).eq("id", id);
-    if (error) return { success: false, error: error.message };
-    revalidatePortfolio();
-    return { success: true };
-  }
+  const allowed = ["title", "category", "sort_order", "featured", "status"];
 
   if (!allowed.includes(field)) {
     return { success: false, error: "Invalid field" };

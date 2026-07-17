@@ -33,7 +33,7 @@ interface Props {
     links: { id: string; title: string; url: string; orderIndex: number }[];
     featured: boolean;
     published: boolean;
-    publishStatus: string;
+    status: string;
     orderIndex: number;
     thumbnailMediaId: string;
     coverImageMediaId: string;
@@ -72,7 +72,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     category: project.category,
     featured: project.featured,
     published: project.published,
-    publishStatus: project.publishStatus,
+    status: project.status,
     orderIndex: project.orderIndex,
     thumbnailMediaId: project.thumbnailMediaId,
     coverImageMediaId: project.coverImageMediaId,
@@ -117,7 +117,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     fd.append("overlay_tag", values.tags.split(",").slice(0, 2).join(" · "));
     fd.append("overlay_name", values.title);
     fd.append("featured", String(values.featured));
-    fd.append("published", values.published ? "true" : "false");
+    fd.append("status", values.status || "published");
     fd.append("sort_order", String(values.orderIndex));
     fd.append("thumbnail_media_id", values.thumbnailMediaId);
     fd.append("cover_image_media_id", values.coverImageMediaId);
@@ -586,7 +586,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
           <div className="dash-grid dash-grid-2" style={{ marginTop: "1rem" }}>
             <div className="dash-field" style={{ display: "flex", gap: "1.5rem", alignItems: "flex-end", paddingBottom: ".35rem" }}>
               <label style={{ display: "flex", alignItems: "center", gap: ".5rem", cursor: "pointer" }}>
-                <input type="checkbox" checked={values.published} onChange={(e) => setValue("published", e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+                <input type="checkbox" checked={values.status !== "draft"} onChange={(e) => setValue("status", e.target.checked ? "published" : "draft")} style={{ accentColor: "var(--accent)" }} />
                 Published
               </label>
             </div>
@@ -602,7 +602,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
             </div>
             <div className="dash-field">
               <label>Status</label>
-              <select value={values.publishStatus} onChange={(e) => setValue("publishStatus", e.target.value)}
+              <select value={values.status} onChange={(e) => setValue("status", e.target.value)}
                 style={{ padding: ".5rem .75rem", background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", fontFamily: "'Space Mono',monospace", fontSize: ".75rem" }}>
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
