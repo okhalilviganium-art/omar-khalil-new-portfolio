@@ -78,7 +78,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     coverImageMediaId: project.coverImageMediaId,
   };
 
-  const { values, setValue, setAll, clearDraft, hasDraft, isStale, restoreSnapshot } = useDraft("project:" + project.id, defaults);
+  const { values, setValue, setAll, clearDraft, reset, hasDraft, isStale, restoreSnapshot } = useDraft("project:" + project.id, defaults);
   const [saving, setSaving] = useState(false);
   const { showPrompt, handleConfirm, handleCancel } = useUnsavedChanges(hasDraft);
   const [activeTab, setActiveTab] = useState<Tab>("general");
@@ -144,13 +144,13 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     const res = await updateProject(project.id, fd);
     setSaving(false);
     if (res.success) {
-      clearDraft();
+      reset(values);
       addRecentItem("project", project.id, values.title, `/dashboard/portfolio/editor?id=${project.id}`);
       toast("Project saved");
     } else {
       toast(res.error || "Save failed", "error");
     }
-  }, [buildFormData, project.id, clearDraft, values.title, toast]);
+  }, [buildFormData, project.id, reset, values, toast]);
 
   const toggleCat = (catId: string) => {
     setSelectedCatIds((prev) =>
@@ -168,27 +168,42 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     if (!files || files.length === 0) return;
     setUploadingGallery(true);
     const newItems = [...gallery];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("folder", "projects/gallery");
-      const res = await uploadFileAction(fd);
-      if (res.success) {
-        const isVideo = file.type.startsWith("video/");
-        newItems.push({
-          id: crypto.randomUUID(),
-          mediaType: isVideo ? "video" : "image",
-          mediaId: res.mediaId,
-          url: res.url,
-          caption: "",
-          orderIndex: newItems.length,
-        });
+    let failed = 0;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("folder", "projects/gallery");
+        try {
+          const res = await uploadFileAction(fd);
+          if (res.success) {
+            const isVideo = file.type.startsWith("video/");
+            newItems.push({
+              id: crypto.randomUUID(),
+              mediaType: isVideo ? "video" : "image",
+              mediaId: res.mediaId,
+              url: res.url,
+              caption: "",
+              orderIndex: newItems.length,
+            });
+          } else {
+            failed++;
+          }
+        } catch {
+          failed++;
+        }
+      }
+    } finally {
+      setGallery(newItems);
+      setUploadingGallery(false);
+      if (failed > 0) {
+        toast(`${failed} file${failed > 1 ? "s" : ""} failed to upload`, "error");
+      } else if (files.length > 0) {
+        toast(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
       }
     }
-    setGallery(newItems);
-    setUploadingGallery(false);
-  }, [gallery]);
+  }, [gallery, toast]);
 
   const removeGalleryItem = (idx: number) => {
     setGallery((prev) => prev.filter((_, i) => i !== idx));
@@ -348,7 +363,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
             <div style={{ marginTop: "1rem" }}>
               <CoverImageUpload
                 value={values.img}
-                onUpload={(url, mid) => setAll({ img: url, thumbnailMediaId: mid })}
+                onUpload={(url, mid) => setAll({ img: url, thumbnailMediaId: mid, coverImageMediaId: mid })}
               />
             </div>
           </div>
@@ -457,6 +472,12 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
             Select one or more categories for this project.
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem" }}>
+            {allCategories.length === 0 && (
+              <div style={{ padding: "1.5rem", border: "1px dashed var(--border)", borderRadius: 8, width: "100%", textAlign: "center", color: "var(--text-muted)", fontFamily: "'Space Mono',monospace", fontSize: ".7rem" }}>
+                <i className="bi bi-tags" style={{ fontSize: "1.2rem", display: "block", marginBottom: ".4rem", opacity: .3 }} />
+                No categories found. Create categories from the Portfolio dashboard first.
+              </div>
+            )}
             {allCategories.map((cat) => {
               const isSelected = selectedCatIds.includes(cat.id);
               return (
@@ -497,6 +518,12 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
             Select the tools and technologies used in this project.
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem" }}>
+            {allTechTags.length === 0 && (
+              <div style={{ padding: "1.5rem", border: "1px dashed var(--border)", borderRadius: 8, width: "100%", textAlign: "center", color: "var(--text-muted)", fontFamily: "'Space Mono',monospace", fontSize: ".7rem" }}>
+                <i className="bi bi-cpu" style={{ fontSize: "1.2rem", display: "block", marginBottom: ".4rem", opacity: .3 }} />
+                No tech tags found. Create tech tags from the Portfolio dashboard first.
+              </div>
+            )}
             {allTechTags.map((tag) => {
               const isSelected = selectedTagIds.includes(tag.id);
               return (
@@ -626,11 +653,12 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
       {/* PREVIEW */}
       <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
         <div className="dash-section-title">Preview</div>
-        <div style={{
-          transform: "scale(0.55)", transformOrigin: "top left",
-          width: "182%", marginBottom: "-40%",
-          pointerEvents: "none", opacity: 0.95,
-        }}>
+        <div style={{ height: 200, overflow: "hidden", position: "relative", borderRadius: 8 }}>
+          <div style={{
+            transform: "scale(0.55)", transformOrigin: "top left",
+            width: "182%",
+            pointerEvents: "none", opacity: 0.95,
+          }}>
           <div style={{ background: "#020409", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)" }}>
             <div style={{ height: 220, background: "#060c18", overflow: "hidden", position: "relative" }}>
               <img src={values.img || "/images/placeholder.jpg"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -658,6 +686,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
               )}
             </div>
           </div>
+        </div>
         </div>
       </div>
 
