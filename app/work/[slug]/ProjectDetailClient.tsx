@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import type { Project } from "@/types";
+import type { Project, ProjectGalleryItem } from "@/types";
 
 interface NavProject {
   slug: string | null;
@@ -22,18 +22,79 @@ export default function ProjectDetailClient({
   nextProject,
   relatedProjects,
 }: Props) {
-  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const gallery: ProjectGalleryItem[] = project.gallery ?? [];
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [imgTransition, setImgTransition] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
 
-  const closeLightbox = useCallback(() => setLightboxImg(null), []);
+  const openLightbox = useCallback((index: number) => setLightboxIndex(index), []);
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+
+  const goPrev = useCallback(() => {
+    setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : prev));
+  }, []);
+
+  const goNext = useCallback(() => {
+    setLightboxIndex((prev) => (prev !== null && prev < gallery.length - 1 ? prev + 1 : prev));
+  }, [gallery.length]);
+
+  const navigateTo = useCallback((target: number) => {
+    setImgTransition(true);
+    setTimeout(() => {
+      setLightboxIndex(target);
+      setTimeout(() => setImgTransition(false), 50);
+    }, 100);
+  }, []);
+
+  const goPrevAnimated = useCallback(() => {
+    if (lightboxIndex === null || lightboxIndex <= 0) return;
+    navigateTo(lightboxIndex - 1);
+  }, [lightboxIndex, navigateTo]);
+
+  const goNextAnimated = useCallback(() => {
+    if (lightboxIndex === null || lightboxIndex >= gallery.length - 1) return;
+    navigateTo(lightboxIndex + 1);
+  }, [lightboxIndex, gallery.length, navigateTo]);
 
   useEffect(() => {
-    if (!lightboxImg) return;
+    if (lightboxIndex === null) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowLeft") goPrevAnimated();
+      if (e.key === "ArrowRight") goNextAnimated();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [lightboxImg, closeLightbox]);
+  }, [lightboxIndex, closeLightbox, goPrevAnimated, goNextAnimated]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) goPrevAnimated();
+      else goNextAnimated();
+    }
+  }, [goPrevAnimated, goNextAnimated]);
+
+  const lightboxItem = lightboxIndex !== null ? gallery[lightboxIndex] : null;
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const preload = (idx: number) => {
+      if (idx >= 0 && idx < gallery.length) {
+        const img = new Image();
+        img.src = gallery[idx].url;
+      }
+    };
+    preload(lightboxIndex - 1);
+    preload(lightboxIndex + 1);
+  }, [lightboxIndex, gallery]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -50,18 +111,46 @@ export default function ProjectDetailClient({
       <div className="pd-page-grid-bg" />
 
       {/* Lightbox */}
-      {lightboxImg && (
+      {lightboxIndex !== null && lightboxItem && (
         <div
           className="pd-lightbox"
           onClick={closeLightbox}
           role="dialog"
           aria-label="Image lightbox"
           aria-modal="true"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           <button className="pd-lightbox-close" onClick={closeLightbox} aria-label="Close lightbox">
             <i className="bi bi-x-lg" />
           </button>
-          <img src={lightboxImg} alt="Enlarged view" className="pd-lightbox-img" />
+
+          {lightboxIndex > 0 && (
+            <button
+              className="pd-lightbox-nav pd-lightbox-prev"
+              onClick={(e) => { e.stopPropagation(); goPrevAnimated(); }}
+              aria-label="Previous image"
+            >
+              <i className="bi bi-chevron-left" />
+            </button>
+          )}
+
+          <img
+            src={lightboxItem.url}
+            alt={lightboxItem.caption || "Enlarged view"}
+            className="pd-lightbox-img"
+            style={{ opacity: imgTransition ? 0 : 1, transition: "opacity .15s ease" }}
+          />
+
+          {lightboxIndex < gallery.length - 1 && (
+            <button
+              className="pd-lightbox-nav pd-lightbox-next"
+              onClick={(e) => { e.stopPropagation(); goNextAnimated(); }}
+              aria-label="Next image"
+            >
+              <i className="bi bi-chevron-right" />
+            </button>
+          )}
         </div>
       )}
 
@@ -151,7 +240,7 @@ export default function ProjectDetailClient({
                 <button
                   key={i}
                   className="pd-gallery-item"
-                  onClick={() => setLightboxImg(item.url)}
+                  onClick={() => openLightbox(i)}
                   aria-label={`View ${item.caption || "image ${i + 1}"}`}
                 >
                   {item.mediaType === "video" ? (
