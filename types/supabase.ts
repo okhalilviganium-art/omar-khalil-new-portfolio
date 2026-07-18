@@ -43,9 +43,6 @@ export interface DbProject {
   client: string;
   thumbnail_media_id: string;
   cover_image_media_id: string;
-  gallery_media_ids: string[] | string;
-  video_media_id: string;
-  github_url: string;
 }
 
 export interface DbCategory {

@@ -1,22 +1,15 @@
 import { getUser } from "@/lib/supabase/auth";
+import { formatDashboardDate, formatDashboardTime } from "@/lib/utils/time";
 
 export default async function WelcomeCard() {
   const user = await getUser();
   const email = user?.email ?? "Admin";
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const timeStr = now.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const dateStr = formatDashboardDate(now);
+  const timeStr = formatDashboardTime(now);
 
   return (
     <div className="dash-card" style={{ padding: "1.5rem" }}>

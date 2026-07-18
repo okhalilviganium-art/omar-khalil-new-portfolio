@@ -2,7 +2,7 @@ import { createAdminClient } from "./admin";
 import type { DbSiteSetting } from "@/types/supabase";
 
 export interface MediaUsageRef {
-  type: "hero" | "about" | "project" | "project_gallery" | "project_video";
+  type: "hero" | "about" | "project" | "project_gallery";
   field: string;
   projectId?: string;
   projectTitle?: string;
@@ -39,29 +39,18 @@ export async function getMediaUsage(mediaId: string): Promise<MediaUsage> {
     }
   }
 
-  // Scan projects for video_media_id, gallery_media_ids
+  // Scan projects for thumbnail_media_id, cover_image_media_id
   const { data: projects } = await s
     .from("projects")
-    .select("id, title, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
+    .select("id, title, thumbnail_media_id, cover_image_media_id");
   if (projects) {
     for (const row of projects) {
       const r = row as Record<string, unknown>;
-      if (r.video_media_id === mediaId) {
-        usedIn.push({ type: "project_video", field: "video_media_id", projectId: r.id as string, projectTitle: r.title as string });
-      }
       if (r.thumbnail_media_id === mediaId) {
         usedIn.push({ type: "project", field: "thumbnail_media_id", projectId: r.id as string, projectTitle: r.title as string });
       }
       if (r.cover_image_media_id === mediaId) {
         usedIn.push({ type: "project", field: "cover_image_media_id", projectId: r.id as string, projectTitle: r.title as string });
-      }
-      let galleryIds: string[] = [];
-      try {
-        if (Array.isArray(r.gallery_media_ids)) galleryIds = r.gallery_media_ids as string[];
-        else if (typeof r.gallery_media_ids === "string") galleryIds = JSON.parse((r.gallery_media_ids as string) || "[]");
-      } catch {}
-      if (galleryIds.includes(mediaId)) {
-        usedIn.push({ type: "project_gallery", field: "gallery_media_ids", projectId: r.id as string, projectTitle: r.title as string });
       }
     }
   }
@@ -113,21 +102,12 @@ export async function findUnusedMedia(): Promise<string[]> {
   // projects
   const { data: projects } = await s
     .from("projects")
-    .select("id, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
+    .select("id, thumbnail_media_id, cover_image_media_id");
   if (projects) {
     for (const row of projects) {
       const r = row as Record<string, unknown>;
-      if (r.video_media_id) referencedIds.add(r.video_media_id as string);
       if (r.thumbnail_media_id) referencedIds.add(r.thumbnail_media_id as string);
       if (r.cover_image_media_id) referencedIds.add(r.cover_image_media_id as string);
-      let galleryIds: string[] = [];
-      try {
-        if (Array.isArray(r.gallery_media_ids)) galleryIds = r.gallery_media_ids as string[];
-        else if (typeof r.gallery_media_ids === "string") galleryIds = JSON.parse((r.gallery_media_ids as string) || "[]");
-      } catch {}
-      for (const gid of galleryIds) {
-        if (gid) referencedIds.add(gid);
-      }
     }
   }
 
@@ -169,21 +149,12 @@ export async function findBrokenMediaReferences(): Promise<MediaUsageRef[]> {
   // projects
   const { data: projects } = await s
     .from("projects")
-    .select("id, title, video_media_id, gallery_media_ids, thumbnail_media_id, cover_image_media_id");
+    .select("id, title, thumbnail_media_id, cover_image_media_id");
   if (projects) {
     for (const row of projects) {
       const r = row as Record<string, unknown>;
-      if (r.video_media_id) refs.push({ id: r.video_media_id as string, ref: { type: "project_video", field: "video_media_id", projectId: r.id as string, projectTitle: r.title as string } });
       if (r.thumbnail_media_id) refs.push({ id: r.thumbnail_media_id as string, ref: { type: "project", field: "thumbnail_media_id", projectId: r.id as string, projectTitle: r.title as string } });
       if (r.cover_image_media_id) refs.push({ id: r.cover_image_media_id as string, ref: { type: "project", field: "cover_image_media_id", projectId: r.id as string, projectTitle: r.title as string } });
-      let galleryIds: string[] = [];
-      try {
-        if (Array.isArray(r.gallery_media_ids)) galleryIds = r.gallery_media_ids as string[];
-        else if (typeof r.gallery_media_ids === "string") galleryIds = JSON.parse((r.gallery_media_ids as string) || "[]");
-      } catch {}
-      for (const gid of galleryIds) {
-        if (gid) refs.push({ id: gid, ref: { type: "project_gallery", field: "gallery_media_ids", projectId: r.id as string, projectTitle: r.title as string } });
-      }
     }
   }
 

@@ -143,7 +143,13 @@ export async function createProject(formData: FormData) {
   const galleryRaw = formData.get("gallery") as string;
   if (galleryRaw) {
     const gallery = JSON.parse(galleryRaw);
-    await replaceGallery(id, gallery);
+    console.log("[createProject] gallery items:", gallery.length);
+    const galResult = await replaceGallery(id, gallery);
+    if (!galResult.success) {
+      console.error("[createProject] replaceGallery failed:", galResult.error);
+      return { success: false, id, error: `Gallery save failed: ${galResult.error}` };
+    }
+    console.log("[createProject] replaceGallery succeeded");
   }
 
   const linksRaw = formData.get("links") as string;
@@ -201,7 +207,15 @@ export async function updateProject(id: string, formData: FormData) {
   const galleryRaw = formData.get("gallery");
   if (galleryRaw) {
     const gallery = JSON.parse(galleryRaw as string);
-    await replaceGallery(id, gallery);
+    console.log("[updateProject] gallery JSON length:", (galleryRaw as string).length, "parsed items:", gallery.length);
+    const galResult = await replaceGallery(id, gallery);
+    if (!galResult.success) {
+      console.error("[updateProject] replaceGallery failed:", galResult.error);
+      return { success: false, error: `Gallery save failed: ${galResult.error}` };
+    }
+    console.log("[updateProject] replaceGallery succeeded");
+  } else {
+    console.log("[updateProject] no gallery field in formData");
   }
 
   const linksRaw = formData.get("links");

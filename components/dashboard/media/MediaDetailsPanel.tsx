@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { DbMediaFile } from "@/types/supabase";
 import type { MediaUsageRef } from "@/lib/supabase/media-usage";
+import { formatDate } from "@/lib/utils/time";
 
 interface Props {
   file: DbMediaFile;
@@ -91,7 +92,7 @@ export default function MediaDetailsPanel({ file, onClose, onRename, onReplace, 
         <InfoRow label="Size" value={formatBytes(file.size)} />
         {file.width && file.height && <InfoRow label="Dimensions" value={`${file.width} x ${file.height}`} />}
         {file.duration && <InfoRow label="Duration" value={`${file.duration}s`} />}
-        <InfoRow label="Created" value={new Date(file.created_at).toLocaleDateString()} />
+        <InfoRow label="Created" value={formatDate(file.created_at)} />
 
         <div style={{ marginTop: "1rem", padding: ".6rem", background: "var(--bg-dark, #060c18)", borderRadius: 6, border: "1px solid var(--border)" }}>
           <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".5rem", color: "var(--text-muted)", letterSpacing: ".08em", textTransform: "uppercase", marginBottom: ".25rem" }}>Media ID</div>

@@ -4,19 +4,8 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import { markAsRead, markAsUnread, archiveMessage, restoreMessage, deleteMessage } from "@/lib/actions/messages";
 import { useMessagesRealtime } from "./useMessagesRealtime";
+import { relativeTime, formatDate, formatDateFull } from "@/lib/utils/time";
 import type { Message } from "@/lib/supabase/messages";
-
-function relativeDate(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return mins + "m ago";
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs + "h ago";
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return days + "d ago";
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 export default function MessagesList({ messages: initial }: { messages: Message[] }) {
   const [filter, setFilter] = useState("all");
@@ -146,7 +135,7 @@ export default function MessagesList({ messages: initial }: { messages: Message[
                   <td>{m.status === "unread" ? <strong>{m.name}</strong> : m.name}</td>
                   <td className="msg-email-cell">{m.email}</td>
                   <td className="msg-preview-cell">{m.subject.length > 60 ? m.subject.substring(0, 60) + "..." : m.subject}</td>
-                  <td className="msg-date-cell">{mounted ? relativeDate(m.date) : new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</td>
+                  <td className="msg-date-cell">{mounted ? relativeTime(m.date) : formatDate(m.date)}</td>
                   <td>
                     <button className="msg-view-btn" onClick={(e) => { e.stopPropagation(); setDrawer(m); }}>
                       <i className="bi bi-eye" /> View
@@ -180,7 +169,7 @@ export default function MessagesList({ messages: initial }: { messages: Message[
               </div>
               <div className="msg-drawer-meta-item">
                 <div className="msg-drawer-meta-label">Date</div>
-                <div className="msg-drawer-meta-val">{new Date(drawer.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                <div className="msg-drawer-meta-val">{formatDateFull(drawer.date)}</div>
               </div>
               <div className="msg-drawer-meta-item">
                 <div className="msg-drawer-meta-label">Status</div>

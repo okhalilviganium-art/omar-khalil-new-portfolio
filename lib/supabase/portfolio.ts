@@ -112,6 +112,8 @@ export async function getProjectsFull(): Promise<Project[]> {
     s.from("project_links").select("*").in("project_id", ids).order("sort_order", { ascending: true }),
   ]);
 
+  console.log("[getProjectsFull] loaded", rows.length, "projects,", galRows.data?.length ?? 0, "gallery rows,", galRows.error?.message ?? "no error");
+
   const catMap = new Map<string, ProjectCategory[]>();
   const tagMap = new Map<string, ProjectTechTag[]>();
   const galMap = new Map<string, ProjectGalleryItem[]>();
@@ -150,6 +152,10 @@ export async function getProjectsFull(): Promise<Project[]> {
     .map((r) => r.thumbnail_media_id || "")
     .filter((id): id is string => Boolean(id));
 
+  const coverMediaIds = rows
+    .map((r) => r.cover_image_media_id || "")
+    .filter((id): id is string => Boolean(id));
+
   const galleryMediaIds: string[] = [];
   if (galRows.data) {
     for (const g of galRows.data as DbProjectGalleryItem[]) {
@@ -159,7 +165,7 @@ export async function getProjectsFull(): Promise<Project[]> {
     }
   }
 
-  const allMediaIds = [...new Set([...thumbnailMediaIds, ...galleryMediaIds])];
+  const allMediaIds = [...new Set([...thumbnailMediaIds, ...coverMediaIds, ...galleryMediaIds])];
 
   let mediaMap = new Map<string, DbMediaFile>();
   if (allMediaIds.length > 0) {
@@ -195,6 +201,16 @@ export async function getProjectsFull(): Promise<Project[]> {
 
     if (!project.img) {
       const mediaId = (row as DbProject).thumbnail_media_id || "";
+      if (mediaId) {
+        const media = mediaMap.get(mediaId);
+        if (media?.public_url) {
+          project.img = media.public_url;
+        }
+      }
+    }
+
+    if (!project.img) {
+      const mediaId = (row as DbProject).cover_image_media_id || "";
       if (mediaId) {
         const media = mediaMap.get(mediaId);
         if (media?.public_url) {
@@ -316,11 +332,27 @@ export async function setProjectTechTags(projectId: string, tagIds: string[]) {
 
 export async function replaceGallery(projectId: string, items: { media_type: string; media_id: string; url: string; caption: string; sort_order: number }[]) {
   const s = createAdminClient();
-  await s.from("project_gallery").delete().eq("project_id", projectId);
+  console.log("[replaceGallery] projectId:", projectId, "items count:", items.length);
+  if (items.length > 0) {
+    console.log("[replaceGallery] items:", JSON.stringify(items.map((it) => ({ media_id: it.media_id, url: it.url?.substring(0, 80), sort_order: it.sort_order }))));
+  }
+
+  const { error: delErr, data: delData } = await s.from("project_gallery").delete().eq("project_id", projectId).select("id");
+  if (delErr) {
+    console.error("[replaceGallery] DELETE failed:", delErr.message, delErr);
+    return { success: false, error: `Delete failed: ${delErr.message}` };
+  }
+  console.log("[replaceGallery] deleted", delData?.length ?? 0, "existing rows for project", projectId);
+
   if (items.length > 0) {
     const rows = items.map((item) => ({ ...item, project_id: projectId }));
-    const { error } = await s.from("project_gallery").insert(rows);
-    if (error) return { success: false, error: error.message };
+    console.log("[replaceGallery] inserting", rows.length, "rows");
+    const { data, error: insErr } = await s.from("project_gallery").insert(rows).select("id");
+    if (insErr) {
+      console.error("[replaceGallery] INSERT failed:", insErr.message, insErr);
+      return { success: false, error: `Insert failed: ${insErr.message}` };
+    }
+    console.log("[replaceGallery] inserted", data?.length ?? 0, "rows, ids:", data?.map((r) => r.id));
   }
   return { success: true };
 }

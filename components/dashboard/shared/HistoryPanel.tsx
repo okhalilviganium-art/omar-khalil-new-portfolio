@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getVersions, restoreVersion } from "@/lib/actions/versions";
+import { relativeTime } from "@/lib/utils/time";
 import type { DbVersion } from "@/types/supabase";
 import { useToast } from "@/components/dashboard/shared/ToastProvider";
 import CompareVersions from "./CompareVersions";
@@ -13,17 +14,6 @@ interface Props {
   onRestore?: (snapshot: Record<string, unknown>) => void;
   /** When true, Restore only loads the snapshot into the editor (no DB write). User must Save to publish. */
   localOnly?: boolean;
-}
-
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return days < 7 ? `${days}d ago` : new Date(dateStr).toLocaleDateString();
 }
 
 export default function HistoryPanel({ entityType, entityId, currentSnapshot, onRestore, localOnly }: Props) {

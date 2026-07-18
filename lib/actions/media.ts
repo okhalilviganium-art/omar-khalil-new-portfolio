@@ -14,6 +14,7 @@ import {
   listMediaFolders as _listFolders,
   renameMediaFolder as _renameFolder,
   deleteMediaFolder as _deleteFolder,
+  insertMediaFile,
 } from "@/lib/supabase/media";
 import {
   deleteFile as _deleteStorage,
@@ -216,4 +217,29 @@ export async function findBrokenMediaReferencesAction() {
 
 export async function getMediaStatsAction() {
   return _stats();
+}
+
+export async function registerMediaRow(row: {
+  path: string;
+  url: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  folder: string;
+}): Promise<{ success: true; mediaId: string } | { success: false; error: string }> {
+  try {
+    const data = await insertMediaFile({
+      filename: row.filename,
+      storage_path: row.path,
+      public_url: row.url,
+      mime_type: row.mimeType || "application/octet-stream",
+      size: row.size,
+      folder: row.folder,
+    });
+    if (!data) return { success: false, error: "Failed to register media row" };
+    logActivity("upload", "media", data.id, row.filename, { size: row.size, type: row.mimeType });
+    return { success: true, mediaId: data.id };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { DbMediaFile } from "@/types/supabase";
+import { relativeTime } from "@/lib/utils/time";
 
 interface Props {
   files: DbMediaFile[];
@@ -17,18 +18,6 @@ function formatBytes(bytes: number) {
   const k = 1024, sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-}
-
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
 }
 
 const COLS = "40px 40px 1fr 100px 100px 80px 80px 90px";
@@ -68,7 +57,7 @@ export default function MediaFileList({ files, selected, onSelect, onOpen, usage
             <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)" }}>{f.folder || "-"}</span>
             <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)" }}>{f.mime_type.split("/")[1] || f.mime_type}</span>
             <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)" }}>{formatBytes(f.size)}</span>
-            <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)" }}>{timeAgo(f.created_at)}</span>
+            <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--text-muted)" }}>{relativeTime(f.created_at)}</span>
             <span style={{ fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: count > 0 ? "var(--accent)" : "var(--text-muted)" }}>
               {count > 0 ? `${count} ref${count !== 1 ? "s" : ""}` : "-"}
             </span>

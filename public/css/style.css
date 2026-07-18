@@ -1676,7 +1676,7 @@
     left: 0;
     right: 0;
     height: 160px;
-    background: linear-gradient(to bottom, transparent, var(--bg));
+    background: linear-gradient(to bottom, transparent, var(--bg-deep));
     pointer-events: none;
   }
   .pd-hero-content {

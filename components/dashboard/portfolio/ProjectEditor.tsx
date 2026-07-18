@@ -7,7 +7,7 @@ import { useUnsavedChanges, UnsavedChangesPrompt } from "@/components/dashboard/
 import { addRecentItem } from "@/components/dashboard/shared/RecentItems";
 import { FavoriteButton } from "@/components/dashboard/shared/FavoritesPanel";
 import { updateProject } from "@/lib/actions/portfolio";
-import { uploadFileAction } from "@/lib/actions/storage";
+import { clientUploadFile } from "@/lib/supabase/client-upload";
 import HistoryPanel from "@/components/dashboard/shared/HistoryPanel";
 import { useDraft } from "@/hooks/useDraft";
 import type { DbCategory, DbTechTag } from "@/types/supabase";
@@ -140,7 +140,9 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
 
   const doSave = useCallback(async () => {
     setSaving(true);
+    console.log("[doSave] gallery state:", gallery.length, "items:", gallery.map((g) => ({ mediaId: g.mediaId, url: g.url?.substring(0, 60) })));
     const fd = buildFormData();
+    console.log("[doSave] gallery in formData:", fd.get("gallery")?.toString().substring(0, 200));
     const res = await updateProject(project.id, fd);
     setSaving(false);
     if (res.success) {
@@ -150,7 +152,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     } else {
       toast(res.error || "Save failed", "error");
     }
-  }, [buildFormData, project.id, reset, values, toast]);
+  }, [buildFormData, project.id, reset, values, toast, gallery]);
 
   const toggleCat = (catId: string) => {
     setSelectedCatIds((prev) =>
@@ -167,43 +169,41 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
   const handleGalleryUpload = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploadingGallery(true);
-    const newItems = [...gallery];
     let failed = 0;
+    let uploaded = 0;
     try {
+      const newItems: { id: string; mediaType: string; mediaId: string; url: string; caption: string; orderIndex: number }[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fd = new FormData();
-        fd.append("file", file);
-        fd.append("folder", "projects/gallery");
         try {
-          const res = await uploadFileAction(fd);
-          if (res.success) {
-            const isVideo = file.type.startsWith("video/");
-            newItems.push({
-              id: crypto.randomUUID(),
-              mediaType: isVideo ? "video" : "image",
-              mediaId: res.mediaId,
-              url: res.url,
-              caption: "",
-              orderIndex: newItems.length,
-            });
-          } else {
-            failed++;
-          }
+          const res = await clientUploadFile(file, "projects/gallery");
+          const isVideo = file.type.startsWith("video/");
+          newItems.push({
+            id: crypto.randomUUID(),
+            mediaType: isVideo ? "video" : "image",
+            mediaId: res.mediaId,
+            url: res.url,
+            caption: "",
+            orderIndex: i,
+          });
+          uploaded++;
         } catch {
           failed++;
         }
       }
+      if (newItems.length > 0) {
+        setGallery((prev) => newItems.map((item, i) => ({ ...item, orderIndex: prev.length + i })).concat(prev));
+      }
     } finally {
-      setGallery(newItems);
       setUploadingGallery(false);
       if (failed > 0) {
         toast(`${failed} file${failed > 1 ? "s" : ""} failed to upload`, "error");
-      } else if (files.length > 0) {
-        toast(`${files.length} file${files.length > 1 ? "s" : ""} uploaded`);
+      }
+      if (uploaded > 0) {
+        toast(`${uploaded} file${uploaded > 1 ? "s" : ""} uploaded`);
       }
     }
-  }, [gallery, toast]);
+  }, [toast]);
 
   const removeGalleryItem = (idx: number) => {
     setGallery((prev) => prev.filter((_, i) => i !== idx));
@@ -711,15 +711,8 @@ function CoverImageUpload({ value, onUpload }: { value: string; onUpload: (url: 
   const handleFile = useCallback(async (file: File) => {
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("folder", "projects/covers");
-      const res = await uploadFileAction(fd);
-      if (res.success) {
-        onUpload(res.url, res.mediaId);
-      } else {
-        toast(res.error, "error");
-      }
+      const res = await clientUploadFile(file, "projects/covers");
+      onUpload(res.url, res.mediaId);
     } catch {
       toast("Upload failed", "error");
     } finally {
