@@ -131,31 +131,37 @@ export async function createProject(formData: FormData) {
   const catIdsRaw = formData.get("category_ids") as string;
   if (catIdsRaw) {
     const catIds = JSON.parse(catIdsRaw) as string[];
-    await setProjectCategories(id, catIds);
+    const catResult = await setProjectCategories(id, catIds);
+    if (!catResult.success) {
+      return { success: false, id, error: `Categories save failed: ${catResult.error}` };
+    }
   }
 
   const tagIdsRaw = formData.get("tech_tag_ids") as string;
   if (tagIdsRaw) {
     const tagIds = JSON.parse(tagIdsRaw) as string[];
-    await setProjectTechTags(id, tagIds);
+    const tagResult = await setProjectTechTags(id, tagIds);
+    if (!tagResult.success) {
+      return { success: false, id, error: `Tags save failed: ${tagResult.error}` };
+    }
   }
 
   const galleryRaw = formData.get("gallery") as string;
   if (galleryRaw) {
     const gallery = JSON.parse(galleryRaw);
-    console.log("[createProject] gallery items:", gallery.length);
     const galResult = await replaceGallery(id, gallery);
     if (!galResult.success) {
-      console.error("[createProject] replaceGallery failed:", galResult.error);
       return { success: false, id, error: `Gallery save failed: ${galResult.error}` };
     }
-    console.log("[createProject] replaceGallery succeeded");
   }
 
   const linksRaw = formData.get("links") as string;
   if (linksRaw) {
     const links = JSON.parse(linksRaw);
-    await replaceLinks(id, links);
+    const linkResult = await replaceLinks(id, links);
+    if (!linkResult.success) {
+      return { success: false, id, error: `Links save failed: ${linkResult.error}` };
+    }
   }
 
   revalidatePortfolio();
@@ -195,33 +201,37 @@ export async function updateProject(id: string, formData: FormData) {
   const catIdsRaw = formData.get("category_ids");
   if (catIdsRaw) {
     const catIds = JSON.parse(catIdsRaw as string) as string[];
-    await setProjectCategories(id, catIds);
+    const catResult = await setProjectCategories(id, catIds);
+    if (!catResult.success) {
+      return { success: false, error: `Categories save failed: ${catResult.error}` };
+    }
   }
 
   const tagIdsRaw = formData.get("tech_tag_ids");
   if (tagIdsRaw) {
     const tagIds = JSON.parse(tagIdsRaw as string) as string[];
-    await setProjectTechTags(id, tagIds);
+    const tagResult = await setProjectTechTags(id, tagIds);
+    if (!tagResult.success) {
+      return { success: false, error: `Tags save failed: ${tagResult.error}` };
+    }
   }
 
   const galleryRaw = formData.get("gallery");
   if (galleryRaw) {
     const gallery = JSON.parse(galleryRaw as string);
-    console.log("[updateProject] gallery JSON length:", (galleryRaw as string).length, "parsed items:", gallery.length);
     const galResult = await replaceGallery(id, gallery);
     if (!galResult.success) {
-      console.error("[updateProject] replaceGallery failed:", galResult.error);
       return { success: false, error: `Gallery save failed: ${galResult.error}` };
     }
-    console.log("[updateProject] replaceGallery succeeded");
-  } else {
-    console.log("[updateProject] no gallery field in formData");
   }
 
   const linksRaw = formData.get("links");
   if (linksRaw) {
     const links = JSON.parse(linksRaw as string);
-    await replaceLinks(id, links);
+    const linkResult = await replaceLinks(id, links);
+    if (!linkResult.success) {
+      return { success: false, error: `Links save failed: ${linkResult.error}` };
+    }
   }
 
   revalidatePortfolio();

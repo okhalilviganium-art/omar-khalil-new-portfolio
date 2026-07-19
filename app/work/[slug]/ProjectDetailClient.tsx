@@ -295,6 +295,12 @@ export default function ProjectDetailClient({
                 <span className="pd-meta-val">{project.year}</span>
               </div>
             )}
+            {project.role && (
+              <div className="pd-meta-item">
+                <span className="pd-meta-label">Role</span>
+                <span className="pd-meta-val">{project.role}</span>
+              </div>
+            )}
             {project.category && (
               <div className="pd-meta-item">
                 <span className="pd-meta-label">Service</span>

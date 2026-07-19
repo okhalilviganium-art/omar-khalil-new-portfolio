@@ -349,11 +349,13 @@ export async function replaceGallery(projectId: string, items: { media_type: str
 
 export async function replaceLinks(projectId: string, items: { title: string; url: string; sort_order: number }[]) {
   const s = createAdminClient();
-  await s.from("project_links").delete().eq("project_id", projectId);
+  const { error: delErr } = await s.from("project_links").delete().eq("project_id", projectId);
+  if (delErr) return { success: false, error: `Delete failed: ${delErr.message}` };
   if (items.length > 0) {
     const rows = items.map((item) => ({ ...item, project_id: projectId }));
-    const { error } = await s.from("project_links").insert(rows);
-    if (error) return { success: false, error: error.message };
+    const { data, error: insErr } = await s.from("project_links").insert(rows).select("id");
+    if (insErr) return { success: false, error: `Insert failed: ${insErr.message}` };
+    if (!data || data.length !== rows.length) return { success: false, error: `Insert incomplete: expected ${rows.length} rows, got ${data?.length ?? 0}` };
   }
   return { success: true };
 }
