@@ -29,7 +29,7 @@ interface Props {
     category: string;
     categories: { id: string; name: string; slug: string }[];
     techStack: { id: string; name: string; slug: string }[];
-    gallery: { id: string; mediaType: string; mediaId: string; url: string; caption: string; orderIndex: number }[];
+    gallery: { id: string; mediaType: string; mediaId: string; url: string; caption: string; thumbnailUrl: string; orderIndex: number }[];
     links: { id: string; title: string; url: string; orderIndex: number }[];
     featured: boolean;
     published: boolean;
@@ -76,6 +76,8 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     orderIndex: project.orderIndex,
     thumbnailMediaId: project.thumbnailMediaId,
     coverImageMediaId: project.coverImageMediaId,
+    selectedCatIds: project.categories.map((c) => c.id) as string[],
+    selectedTagIds: project.techStack.map((t) => t.id) as string[],
   };
 
   const { values, setValue, setAll, clearDraft, reset, hasDraft, isStale, restoreSnapshot } = useDraft("project:" + project.id, defaults);
@@ -83,13 +85,19 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
   const { showPrompt, handleConfirm, handleCancel } = useUnsavedChanges(hasDraft);
   const [activeTab, setActiveTab] = useState<Tab>("general");
 
-  const [selectedCatIds, setSelectedCatIds] = useState<string[]>(
-    project.categories.map((c) => c.id)
-  );
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
-    project.techStack.map((t) => t.id)
-  );
-  const [gallery, setGallery] = useState<{ id: string; mediaType: string; mediaId: string; url: string; caption: string; orderIndex: number }[]>(
+  const selectedCatIds = values.selectedCatIds;
+  const selectedTagIds = values.selectedTagIds;
+
+  const setSelectedCatIds = useCallback(( updater: string[] | ((prev: string[]) => string[]) ) => {
+    const next = typeof updater === "function" ? updater(values.selectedCatIds) : updater;
+    setValue("selectedCatIds", next);
+  }, [values.selectedCatIds, setValue]);
+
+  const setSelectedTagIds = useCallback(( updater: string[] | ((prev: string[]) => string[]) ) => {
+    const next = typeof updater === "function" ? updater(values.selectedTagIds) : updater;
+    setValue("selectedTagIds", next);
+  }, [values.selectedTagIds, setValue]);
+  const [gallery, setGallery] = useState<{ id: string; mediaType: string; mediaId: string; url: string; caption: string; thumbnailUrl: string; orderIndex: number }[]>(
     project.gallery
   );
   const [links, setLinks] = useState<{ id: string; title: string; url: string; orderIndex: number }[]>(
@@ -128,6 +136,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
       media_id: g.mediaId,
       url: g.url,
       caption: g.caption,
+      thumbnail_url: g.thumbnailUrl || "",
       sort_order: i,
     }))));
     fd.append("links", JSON.stringify(links.map((l, i) => ({
@@ -140,9 +149,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
 
   const doSave = useCallback(async () => {
     setSaving(true);
-    console.log("[doSave] gallery state:", gallery.length, "items:", gallery.map((g) => ({ mediaId: g.mediaId, url: g.url?.substring(0, 60) })));
     const fd = buildFormData();
-    console.log("[doSave] gallery in formData:", fd.get("gallery")?.toString().substring(0, 200));
     const res = await updateProject(project.id, fd);
     setSaving(false);
     if (res.success) {
@@ -152,7 +159,7 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     } else {
       toast(res.error || "Save failed", "error");
     }
-  }, [buildFormData, project.id, reset, values, toast, gallery]);
+  }, [buildFormData, project.id, reset, values, toast]);
 
   const toggleCat = (catId: string) => {
     setSelectedCatIds((prev) =>
@@ -171,19 +178,22 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
     setUploadingGallery(true);
     let failed = 0;
     let uploaded = 0;
+    const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+    const VIDEO_EXTS = [".mp4", ".webm", ".mov"];
     try {
-      const newItems: { id: string; mediaType: string; mediaId: string; url: string; caption: string; orderIndex: number }[] = [];
+      const newItems: { id: string; mediaType: string; mediaId: string; url: string; caption: string; thumbnailUrl: string; orderIndex: number }[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
           const res = await clientUploadFile(file, "projects/gallery");
-          const isVideo = file.type.startsWith("video/");
+          const isVideo = VIDEO_TYPES.includes(file.type) || VIDEO_EXTS.some((ext) => file.name.toLowerCase().endsWith(ext));
           newItems.push({
             id: crypto.randomUUID(),
             mediaType: isVideo ? "video" : "image",
             mediaId: res.mediaId,
             url: res.url,
             caption: "",
+            thumbnailUrl: "",
             orderIndex: i,
           });
           uploaded++;
@@ -422,7 +432,14 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
                 >
                   <div style={{ position: "relative", paddingBottom: "65%", background: "#060c18" }}>
                     {item.mediaType === "video" ? (
-                      <video src={item.url} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} muted />
+                      <>
+                        <video src={item.url} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} muted preload="metadata" />
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.3)" }}>
+                          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(0,0,0,.5)", border: "2px solid rgba(255,255,255,.8)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: ".8rem" }}>
+                            <i className="bi bi-play-fill" />
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <img src={item.url} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
                         loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/images/placeholder.jpg"; }} />
@@ -431,8 +448,8 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
                       style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(0,0,0,.7)", color: "#fff", border: "none", cursor: "pointer", fontSize: ".6rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <i className="bi bi-trash" />
                     </button>
-                    <span style={{ position: "absolute", top: 4, left: 4, padding: "2px 6px", background: item.mediaType === "video" ? "rgba(0,212,255,.9)" : "rgba(108,99,255,.9)", borderRadius: 3, fontFamily: "'Space Mono',monospace", fontSize: ".5rem", color: "#fff", textTransform: "uppercase" }}>
-                      {item.mediaType}
+                    <span style={{ position: "absolute", top: 4, left: 4, padding: "2px 6px", background: item.mediaType === "video" ? "rgba(0,212,255,.9)" : "rgba(108,99,255,.9)", borderRadius: 3, fontFamily: "'Space Mono',monospace", fontSize: ".5rem", color: "#fff", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "3px" }}>
+                      {item.mediaType === "video" ? <><i className="bi bi-play-circle" /> Video</> : <><i className="bi bi-image" /> Image</>}
                     </span>
                     <div style={{ position: "absolute", bottom: 4, left: 4, right: 4, display: "flex", gap: ".25rem" }}>
                       {idx > 0 && (
@@ -468,45 +485,16 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
       {activeTab === "categories" && (
         <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
           <div className="dash-section-title">Categories</div>
-          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".65rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
-            Select one or more categories for this project.
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem" }}>
-            {allCategories.length === 0 && (
-              <div style={{ padding: "1.5rem", border: "1px dashed var(--border)", borderRadius: 8, width: "100%", textAlign: "center", color: "var(--text-muted)", fontFamily: "'Space Mono',monospace", fontSize: ".7rem" }}>
-                <i className="bi bi-tags" style={{ fontSize: "1.2rem", display: "block", marginBottom: ".4rem", opacity: .3 }} />
-                No categories found. Create categories from the Portfolio dashboard first.
-              </div>
-            )}
-            {allCategories.map((cat) => {
-              const isSelected = selectedCatIds.includes(cat.id);
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => toggleCat(cat.id)}
-                  style={{
-                    padding: ".4rem .8rem",
-                    background: isSelected ? "var(--accent)" : "transparent",
-                    color: isSelected ? "#fff" : "var(--text-muted)",
-                    border: `1px solid ${isSelected ? "var(--accent)" : "var(--border)"}`,
-                    borderRadius: 6,
-                    fontFamily: "'Space Mono',monospace",
-                    fontSize: ".7rem",
-                    cursor: "pointer",
-                    transition: "all .15s",
-                  }}
-                >
-                  {isSelected && <i className="bi bi-check-lg" style={{ marginRight: ".3rem" }} />}
-                  {cat.name}
-                </button>
-              );
-            })}
-          </div>
-          {selectedCatIds.length > 0 && (
-            <div style={{ marginTop: "1rem", fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--accent)" }}>
-              {selectedCatIds.length} categor{selectedCatIds.length === 1 ? "y" : "ies"} selected
-            </div>
-          )}
+          <ChipSelect
+            items={allCategories}
+            selectedIds={selectedCatIds}
+            onToggle={toggleCat}
+            onRemove={toggleCat}
+            accentColor="var(--accent)"
+            createLabel="category"
+            emptyMessage="No categories yet. Create your first category below."
+            onCreated={(id) => setSelectedCatIds((prev) => [...prev, id])}
+          />
         </div>
       )}
 
@@ -514,45 +502,16 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
       {activeTab === "techstack" && (
         <div className="dash-section" style={{ marginBottom: "1.5rem" }}>
           <div className="dash-section-title">Tech Stack</div>
-          <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".65rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
-            Select the tools and technologies used in this project.
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem" }}>
-            {allTechTags.length === 0 && (
-              <div style={{ padding: "1.5rem", border: "1px dashed var(--border)", borderRadius: 8, width: "100%", textAlign: "center", color: "var(--text-muted)", fontFamily: "'Space Mono',monospace", fontSize: ".7rem" }}>
-                <i className="bi bi-cpu" style={{ fontSize: "1.2rem", display: "block", marginBottom: ".4rem", opacity: .3 }} />
-                No tech tags found. Create tech tags from the Portfolio dashboard first.
-              </div>
-            )}
-            {allTechTags.map((tag) => {
-              const isSelected = selectedTagIds.includes(tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.id)}
-                  style={{
-                    padding: ".4rem .8rem",
-                    background: isSelected ? "rgba(0,212,255,.15)" : "transparent",
-                    color: isSelected ? "var(--accent2)" : "var(--text-muted)",
-                    border: `1px solid ${isSelected ? "var(--accent2)" : "var(--border)"}`,
-                    borderRadius: 6,
-                    fontFamily: "'Space Mono',monospace",
-                    fontSize: ".7rem",
-                    cursor: "pointer",
-                    transition: "all .15s",
-                  }}
-                >
-                  {isSelected && <i className="bi bi-check-lg" style={{ marginRight: ".3rem" }} />}
-                  {tag.name}
-                </button>
-              );
-            })}
-          </div>
-          {selectedTagIds.length > 0 && (
-            <div style={{ marginTop: "1rem", fontFamily: "'Space Mono',monospace", fontSize: ".6rem", color: "var(--accent2)" }}>
-              {selectedTagIds.length} tag{selectedTagIds.length === 1 ? "" : "s"} selected
-            </div>
-          )}
+          <ChipSelect
+            items={allTechTags}
+            selectedIds={selectedTagIds}
+            onToggle={toggleTag}
+            onRemove={toggleTag}
+            accentColor="var(--accent2)"
+            createLabel="tech tag"
+            emptyMessage="No tech tags yet. Create your first tag below."
+            onCreated={(id) => setSelectedTagIds((prev) => [...prev, id])}
+          />
         </div>
       )}
 
@@ -699,6 +658,238 @@ export default function ProjectEditor({ project, allCategories, allTechTags }: P
       />
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }`}</style>
+    </div>
+  );
+}
+
+interface ChipSelectItem {
+  id: string;
+  name: string;
+}
+
+function ChipSelect({
+  items,
+  selectedIds,
+  onToggle,
+  onRemove,
+  accentColor,
+  createLabel,
+  emptyMessage,
+  onCreated,
+}: {
+  items: ChipSelectItem[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+  accentColor: string;
+  createLabel: string;
+  emptyMessage: string;
+  onCreated: (id: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
+  const [localItems, setLocalItems] = useState<ChipSelectItem[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const mergedItems = [...items, ...localItems.filter((li) => !items.some((i) => i.id === li.id))];
+  const selectedItems = mergedItems.filter((c) => selectedIds.includes(c.id));
+  const query = search.trim().toLowerCase();
+
+  const filtered = mergedItems.filter((c) => {
+    if (!query) return true;
+    return c.name.toLowerCase().includes(query);
+  });
+
+  const exactMatch = query ? mergedItems.some((c) => c.name.toLowerCase() === query) : true;
+
+  const suggestions = filtered.filter((c) => !selectedIds.includes(c.id));
+
+  const allOptions = [
+    ...suggestions,
+    ...(query && !exactMatch ? [{ id: `__create:${search.trim()}`, name: `Create "${search.trim()}"`, isCreate: true } as const] : []),
+  ];
+
+  const handleSelect = async (id: string) => {
+    if (id.startsWith("__create:")) {
+      const name = id.replace("__create:", "");
+      setCreating(true);
+      try {
+        const { createCategory } = await import("@/lib/actions/categories");
+        const { createTechTag } = await import("@/lib/actions/tech-tags");
+        const createFn = accentColor === "var(--accent)" ? createCategory : createTechTag;
+        const res = await createFn(name);
+        if (res.success && res.id) {
+          setLocalItems((prev) => [...prev, { id: res.id!, name }]);
+          onCreated(res.id);
+        } else {
+          toast(res.error || "Failed to create", "error");
+        }
+      } catch {
+        toast("Failed to create " + createLabel, "error");
+      } finally {
+        setCreating(false);
+        setSearch("");
+        setShowDropdown(false);
+        setHighlightIdx(-1);
+      }
+    } else {
+      onToggle(id);
+      setSearch("");
+      setShowDropdown(false);
+      setHighlightIdx(-1);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.min(prev + 1, allOptions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightIdx >= 0 && highlightIdx < allOptions.length) {
+        handleSelect(allOptions[highlightIdx].id);
+      } else if (allOptions.length === 1) {
+        handleSelect(allOptions[0].id);
+      }
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+      setSearch("");
+      setHighlightIdx(-1);
+    } else if (e.key === "Backspace" && !search && selectedItems.length > 0) {
+      onRemove(selectedItems[selectedItems.length - 1].id);
+    }
+  };
+
+  return (
+    <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".7rem" }}>
+      <div style={{ fontFamily: "'Space Mono',monospace", fontSize: ".65rem", color: "var(--text-muted)", marginBottom: ".75rem" }}>
+        Select or create {createLabel}s for this project.
+      </div>
+
+      {/* Selected chips */}
+      {selectedItems.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: ".4rem", marginBottom: ".75rem" }}>
+          {selectedItems.map((item) => (
+            <span
+              key={item.id}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: ".3rem",
+                padding: ".3rem .6rem", borderRadius: 6,
+                background: accentColor === "var(--accent)" ? "rgba(108,99,255,.15)" : "rgba(0,212,255,.15)",
+                color: accentColor, border: `1px solid ${accentColor}33`,
+                fontFamily: "'Space Mono',monospace", fontSize: ".65rem",
+              }}
+            >
+              {item.name}
+              <button
+                onClick={() => onRemove(item.id)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 14, height: 14, borderRadius: "50%",
+                  background: "rgba(255,255,255,.15)", border: "none", color: "inherit",
+                  cursor: "pointer", fontSize: ".5rem", padding: 0, lineHeight: 1,
+                }}
+                aria-label={`Remove ${item.name}`}
+              >
+                <i className="bi bi-x" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Search input */}
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", border: `1px solid ${showDropdown ? accentColor : "var(--border)"}`, borderRadius: 8, background: "var(--bg-input)", padding: ".3rem .5rem", gap: ".4rem" }}>
+          <i className="bi bi-search" style={{ color: "var(--text-muted)", fontSize: ".7rem", flexShrink: 0 }} />
+          <input
+            ref={inputRef}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); setHighlightIdx(-1); }}
+            onFocus={() => setShowDropdown(true)}
+            onKeyDown={handleKeyDown}
+            placeholder={selectedItems.length > 0 ? `Add more ${createLabel}s...` : `Search or create ${createLabel}s...`}
+            style={{
+              flex: 1, border: "none", background: "transparent", color: "var(--text)",
+              fontFamily: "'Space Mono',monospace", fontSize: ".7rem", outline: "none",
+              padding: ".3rem 0",
+            }}
+          />
+          {creating && (
+            <span style={{ color: accentColor, fontSize: ".6rem" }}>Creating...</span>
+          )}
+        </div>
+
+        {/* Dropdown */}
+        {showDropdown && allOptions.length > 0 && (
+          <div
+            ref={dropdownRef}
+            style={{
+              position: "absolute", top: "100%", left: 0, right: 0, zIndex: 100,
+              marginTop: 4, background: "var(--bg-dark, #060c18)", border: "1px solid var(--border)",
+              borderRadius: 8, maxHeight: 220, overflowY: "auto",
+              boxShadow: "0 8px 32px rgba(0,0,0,.4)",
+            }}
+          >
+            {allOptions.map((opt, i) => {
+              const isCreate = "isCreate" in opt && opt.isCreate;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => handleSelect(opt.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: ".5rem",
+                    width: "100%", padding: ".5rem .75rem", border: "none",
+                    background: highlightIdx === i ? "rgba(108,99,255,.15)" : "transparent",
+                    color: isCreate ? accentColor : "var(--text)",
+                    cursor: "pointer", fontFamily: "'Space Mono',monospace", fontSize: ".7rem",
+                    textAlign: "left", transition: "background .1s",
+                  }}
+                  onMouseEnter={() => setHighlightIdx(i)}
+                >
+                  {isCreate ? (
+                    <i className="bi bi-plus-circle" style={{ color: accentColor }} />
+                  ) : (
+                    <i className="bi bi-check-lg" style={{
+                      opacity: selectedIds.includes(opt.id) ? 1 : 0,
+                      color: accentColor,
+                    }} />
+                  )}
+                  <span>{opt.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Click outside to close */}
+      {showDropdown && (
+        <div
+          style={{ position: "fixed", inset: 0, zIndex: 99 }}
+          onClick={() => { setShowDropdown(false); setSearch(""); setHighlightIdx(-1); }}
+        />
+      )}
+
+      {mergedItems.length === 0 && selectedItems.length === 0 && (
+        <div style={{ marginTop: ".75rem", padding: "1rem", border: "1px dashed var(--border)", borderRadius: 8, textAlign: "center", color: "var(--text-muted)" }}>
+          <i className={`bi bi-${accentColor === "var(--accent)" ? "tags" : "cpu"}`} style={{ fontSize: "1.2rem", display: "block", marginBottom: ".3rem", opacity: .3 }} />
+          {emptyMessage}
+        </div>
+      )}
+
+      {selectedItems.length > 0 && (
+        <div style={{ marginTop: ".5rem", fontFamily: "'Space Mono',monospace", fontSize: ".55rem", color: accentColor }}>
+          {selectedItems.length} {createLabel}{selectedItems.length === 1 ? "" : "s"} selected
+        </div>
+      )}
     </div>
   );
 }

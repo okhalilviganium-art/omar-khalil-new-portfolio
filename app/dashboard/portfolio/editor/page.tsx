@@ -39,7 +39,7 @@ export default async function ProjectEditorPage({
     category: project.category || "",
     categories: project.categories || [],
     techStack: project.techStack || [],
-    gallery: project.gallery || [],
+    gallery: project.gallery.map((g) => ({ ...g, thumbnailUrl: g.thumbnailUrl || "" })) || [],
     links: project.links || [],
     featured: project.featured || false,
     published: project.published !== false,

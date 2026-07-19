@@ -129,6 +129,7 @@ export default function WorkClient({ projects }: Props) {
                 ? p.categories[0].name
                 : p.category || "";
               const thumb = p.img || "/images/placeholder.jpg";
+              const hasVideo = p.gallery?.some((g) => g.mediaType === "video");
 
               return (
                 <Link
@@ -145,6 +146,11 @@ export default function WorkClient({ projects }: Props) {
                       loading="lazy"
                       className="work-card-img"
                     />
+                    {hasVideo && (
+                      <div className="work-video-badge">
+                        <i className="bi bi-play-circle" /> Video
+                      </div>
+                    )}
                     <div className="work-card-overlay">
                       <span className="work-card-preview">
                         <i className="bi bi-arrow-up-right" /> Preview

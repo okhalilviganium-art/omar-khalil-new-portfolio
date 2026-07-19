@@ -13,6 +13,8 @@ const navItems = [
   { href: "/dashboard/hero", icon: "bi-image", label: "Hero" },
   { href: "/dashboard/about", icon: "bi-person", label: "About" },
   { href: "/dashboard/portfolio", icon: "bi-folder", label: "Portfolio" },
+  { href: "/dashboard/portfolio/categories", icon: "bi-tags", label: "Categories", parent: "/dashboard/portfolio" },
+  { href: "/dashboard/portfolio/tech-stack", icon: "bi-cpu", label: "Tech Stack", parent: "/dashboard/portfolio" },
   { href: "/dashboard/services", icon: "bi-lightning", label: "Services" },
   { href: "/dashboard/statistics", icon: "bi-bar-chart", label: "Statistics" },
   { href: "/dashboard/social-links", icon: "bi-share", label: "Social Links" },
@@ -31,6 +33,11 @@ export default function Sidebar() {
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
+  };
+
+  const isChildActive = (item: (typeof navItems)[number]) => {
+    if ("parent" in item) return pathname === item.href;
+    return false;
   };
 
   const handleLogout = async () => {
@@ -61,26 +68,31 @@ export default function Sidebar() {
       </button>
 
       <nav className="dash-nav">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`dash-nav-item${isActive(item.href, item.exact) ? " active" : ""}`}
-            data-nav-item
-          >
-            <i className={`bi ${item.icon}`} /> <span>{item.label}</span>
-            {item.href === "/dashboard/messages" && unreadMessages > 0 && (
-              <span style={{
-                marginLeft: "auto", padding: "1px 6px", borderRadius: 10,
-                background: "var(--accent, #6c63ff)", color: "#fff",
-                fontSize: ".5rem", fontFamily: "'Space Mono',monospace",
-                fontWeight: 700, lineHeight: "16px", textAlign: "center",
-              }}>
-                {unreadMessages > 99 ? "99+" : unreadMessages}
-              </span>
-            )}
-          </Link>
-        ))}
+        {navItems.map((item) => {
+          const isChild = "parent" in item;
+          const active = isChild ? isChildActive(item) : isActive(item.href, item.exact);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`dash-nav-item${active ? " active" : ""}`}
+              data-nav-item
+              style={isChild ? { paddingLeft: "2rem", fontSize: ".68rem" } : undefined}
+            >
+              <i className={`bi ${item.icon}`} /> <span>{item.label}</span>
+              {item.href === "/dashboard/messages" && unreadMessages > 0 && (
+                <span style={{
+                  marginLeft: "auto", padding: "1px 6px", borderRadius: 10,
+                  background: "var(--accent, #6c63ff)", color: "#fff",
+                  fontSize: ".5rem", fontFamily: "'Space Mono',monospace",
+                  fontWeight: 700, lineHeight: "16px", textAlign: "center",
+                }}>
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
       <div className="dash-sidebar-footer">
         <div style={{ display: "flex", gap: ".35rem", padding: "0 .75rem", marginBottom: ".5rem" }}>

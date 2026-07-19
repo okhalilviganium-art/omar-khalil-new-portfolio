@@ -73,6 +73,7 @@ export interface ProjectGalleryItem {
   mediaId: string;
   url: string;
   caption: string;
+  thumbnailUrl: string;
   orderIndex: number;
 }
 

@@ -69,6 +69,7 @@ export interface DbProjectGalleryItem {
   url: string;
   caption: string;
   sort_order: number;
+  thumbnail_url: string;
   created_at: string;
 }
 

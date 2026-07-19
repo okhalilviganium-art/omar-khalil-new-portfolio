@@ -23,6 +23,7 @@ export default function Portfolio({ projects }: PortfolioProps) {
                 ? p.categories[0].name
                 : p.category || "";
               const thumbSrc = p.img || "/images/placeholder.jpg";
+              const hasVideo = p.gallery?.some((g) => g.mediaType === "video");
 
               return (
                 <Link
@@ -37,6 +38,11 @@ export default function Portfolio({ projects }: PortfolioProps) {
                     loading="lazy"
                     className="project-card-img"
                   />
+                  {hasVideo && (
+                    <div className="project-video-badge">
+                      <i className="bi bi-play-circle" /> Video
+                    </div>
+                  )}
                   <div className="project-overlay">
                     {categoryLabel && (
                       <div className="project-tag">{categoryLabel}</div>
