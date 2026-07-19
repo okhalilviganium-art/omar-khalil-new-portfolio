@@ -23,7 +23,7 @@ const spaceMono = Space_Mono({
   variable: "--font-space-mono",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://omarkhalil.dev";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://omar-khalil-new-portfolio.vercel.app";
 
 export const metadata: Metadata = {
   title: {
@@ -37,15 +37,25 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Omar Khalil",
+    url: "/",
     title: "Omar Khalil — Multimedia Designer",
     description:
       "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+    images: [
+      {
+        url: "/img/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Omar Khalil Portfolio",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Omar Khalil — Multimedia Designer",
     description:
       "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
+    images: ["/img/og-image.jpg"],
   },
   robots: {
     index: true,
