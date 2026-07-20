@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Outfit, Space_Mono } from "next/font/google";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
 
 const bebasNeue = Bebas_Neue({
@@ -23,7 +24,7 @@ const spaceMono = Space_Mono({
   variable: "--font-space-mono",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://omar-khalil-new-portfolio.vercel.app";
+const ogImageUrl = new URL("/img/og-image.jpg", SITE_URL).toString();
 
 export const metadata: Metadata = {
   title: {
@@ -32,18 +33,18 @@ export const metadata: Metadata = {
   },
   description:
     "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   openGraph: {
     type: "website",
     locale: "en_US",
     siteName: "Omar Khalil",
-    url: "/",
+    url: SITE_URL,
     title: "Omar Khalil — Multimedia Designer",
     description:
       "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
     images: [
       {
-        url: "/img/og-image.jpg",
+        url: ogImageUrl,
         width: 1200,
         height: 630,
         alt: "Omar Khalil Portfolio",
@@ -55,7 +56,7 @@ export const metadata: Metadata = {
     title: "Omar Khalil — Multimedia Designer",
     description:
       "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
-    images: ["/img/og-image.jpg"],
+    images: [ogImageUrl],
   },
   robots: {
     index: true,
@@ -73,7 +74,7 @@ const jsonLd = {
   jobTitle: "Multimedia Designer",
   description:
     "Creative Multi Media Designer focused on graphic design, video editing, multimedia production, AI visuals, and 3D workflows.",
-  url: siteUrl,
+  url: SITE_URL,
   sameAs: [],
 };
 
